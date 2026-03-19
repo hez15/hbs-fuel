@@ -21,6 +21,7 @@ local nozzleVisual = {
     rope = nil,
 }
 local lastUiText
+local remoteNozzles = {}
 
 local function hidePumpUi()
     if lastUiText then
@@ -125,7 +126,7 @@ local function createNozzleVisuals()
     clearNozzleVisuals()
 
     local ped = PlayerPedId()
-    local model = loadModel(Config.NozzlePropModel)
+    local model = loadModel((Config.Nozzles and Config.Nozzles.Vehicle and Config.Nozzles.Vehicle.model) or 'prop_cs_fuel_nozle')
     if not model then
         HBSFuelNotify('Failed to load nozzle prop model.', 'error')
         return false
@@ -219,6 +220,8 @@ end
 
 local function clearNozzleState(notifyMessage, notifyType)
     clearNozzleVisuals()
+    TriggerServerEvent('hbs-fuel:server:syncNozzleReturn')
+
     nozzleState.active = false
     nozzleState.pump = nil
     nozzleState.pumpCoords = nil
@@ -378,7 +381,6 @@ local function doRefuel(vehicle, fuelType, litresTarget, paymentMethod)
     showPumpUi('Nozzle ready - target a vehicle to refuel or target the pump to return it')
 end
 
-
 local function promptRefuelVehicle(vehicle)
     if not nozzleState.active then
         HBSFuelNotify('Grab the nozzle from the pump first.', 'error')
@@ -500,9 +502,64 @@ local function grabNozzle(entity)
         return
     end
 
+    TriggerServerEvent('hbs-fuel:server:syncNozzleGrab')
+
     showPumpUi('Nozzle ready - target a vehicle to refuel or target the pump to return it')
     HBSFuelNotify(Config.Notifications.NozzleGrabbed, 'inform')
 end
+
+RegisterNetEvent('hbs-fuel:client:syncNozzleGrab', function(serverId)
+    if GetPlayerServerId(PlayerId()) == serverId then return end
+
+    local player = GetPlayerFromServerId(serverId)
+    if player == -1 then return end
+
+    local ped = GetPlayerPed(player)
+    if not DoesEntityExist(ped) then return end
+
+    if remoteNozzles[serverId] and DoesEntityExist(remoteNozzles[serverId]) then
+        DeleteEntity(remoteNozzles[serverId])
+        remoteNozzles[serverId] = nil
+    end
+
+    local model = loadModel((Config.Nozzles and Config.Nozzles.Vehicle and Config.Nozzles.Vehicle.model) or 'prop_cs_fuel_nozle')
+    if not model then return end
+
+    local obj = CreateObject(model, 0.0, 0.0, 0.0, true, true, false)
+    if not obj or obj == 0 then return end
+
+    SetEntityCollision(obj, false, false)
+    SetEntityAsMissionEntity(obj, true, true)
+
+    AttachEntityToEntity(
+        obj,
+        ped,
+        GetPedBoneIndex(ped, Config.NozzlePropBone or 57005),
+        Config.NozzlePropOffset.x or 0.13,
+        Config.NozzlePropOffset.y or 0.03,
+        Config.NozzlePropOffset.z or -0.02,
+        Config.NozzlePropOffset.rx or -85.0,
+        Config.NozzlePropOffset.ry or 0.0,
+        Config.NozzlePropOffset.rz or -20.0,
+        true,
+        true,
+        false,
+        true,
+        1,
+        true
+    )
+
+    remoteNozzles[serverId] = obj
+end)
+
+RegisterNetEvent('hbs-fuel:client:syncNozzleReturn', function(serverId)
+    if remoteNozzles[serverId] then
+        if DoesEntityExist(remoteNozzles[serverId]) then
+            DeleteEntity(remoteNozzles[serverId])
+        end
+        remoteNozzles[serverId] = nil
+    end
+end)
 
 local function registerTargets()
     exports.ox_target:addModel(pumpModels, {
@@ -603,8 +660,18 @@ end)
 
 AddEventHandler('onResourceStop', function(resource)
     if resource ~= GetCurrentResourceName() then return end
+
     hidePumpUi()
     clearNozzleVisuals()
+    TriggerServerEvent('hbs-fuel:server:syncNozzleReturn')
+
+    for serverId, obj in pairs(remoteNozzles) do
+        if DoesEntityExist(obj) then
+            DeleteEntity(obj)
+        end
+        remoteNozzles[serverId] = nil
+    end
+
     if Config.UseOxTarget then
         pcall(function() exports.ox_target:removeModel(pumpModels, { 'hbs_fuel_grab_nozzle', 'hbs_fuel_return_nozzle' }) end)
         pcall(function() exports.ox_target:removeGlobalVehicle({ 'hbs_fuel_refuel_vehicle' }) end)
