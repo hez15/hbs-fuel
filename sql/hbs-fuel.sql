@@ -1,0 +1,54 @@
+CREATE TABLE IF NOT EXISTS `hbs_fuel_vehicle_state` (
+  `plate` VARCHAR(16) NOT NULL,
+  `litres` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`plate`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `hbs_fuel_station_stock` (
+  `station_id` VARCHAR(64) NOT NULL,
+  `fuel_type` VARCHAR(32) NOT NULL,
+  `current_litres` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `max_litres` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`station_id`, `fuel_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `hbs_fuel_refinery_crude` (
+  `refinery_id` VARCHAR(64) NOT NULL,
+  `current_litres` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `max_litres` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`refinery_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `hbs_fuel_refinery_stock` (
+  `refinery_id` VARCHAR(64) NOT NULL,
+  `fuel_type` VARCHAR(32) NOT NULL,
+  `current_litres` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `max_litres` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`refinery_id`, `fuel_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `hbs_fuel_tanker_state` (
+  `plate` VARCHAR(16) NOT NULL,
+  `fuel_type` VARCHAR(32) NULL,
+  `litres` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `max_litres` DECIMAL(12,2) NOT NULL DEFAULT 12000.00,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`plate`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `hbs_fuel_contracts` (
+  `id` VARCHAR(64) NOT NULL,
+  `type` VARCHAR(32) NOT NULL,
+  `station_id` VARCHAR(64) NULL,
+  `fuel_type` VARCHAR(32) NULL,
+  `litres` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `payout` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `status` VARCHAR(32) NOT NULL DEFAULT 'open',
+  `accepted_by` VARCHAR(64) NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

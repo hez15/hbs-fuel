@@ -1,0 +1,18 @@
+VehicleTankSizes = {
+    adder = 65.0,
+    sultan = 70.0,
+    sultanrs = 72.0,
+    buffalo = 75.0,
+    dominator = 68.0,
+    baller = 82.0,
+    rumpo = 95.0,
+    mule = 150.0,
+    benson = 180.0,
+    hauler = 300.0,
+    tanker = 12000.0,
+    frogger = 420.0,
+    maverick = 520.0,
+    annihilator = 900.0,
+    luxor = 2200.0,
+    shamal = 2600.0,
+}
