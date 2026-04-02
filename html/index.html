@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HBS Fuel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app" class="hidden">
+        <!-- REFUEL PANEL -->
+        <div id="refuel-panel" class="panel hidden">
+            <div class="panel-header">
+                <div class="panel-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 10a1 1 0 01-1-1V5a1 1 0 00-1-1H6a1 1 0 00-1 1v14a1 1 0 001 1h10a1 1 0 001-1v-4a1 1 0 011-1h1a1 1 0 001-1v-2a1 1 0 00-1-1h-1zM7 7h8v3H7V7z"/></svg></div>
+                <h2 id="refuel-station-name">Fuel Station</h2>
+                <button class="close-btn" onclick="closePanel()">&times;</button>
+            </div>
+
+            <div class="panel-body">
+                <div class="gauge-section">
+                    <div class="fuel-gauge">
+                        <svg viewBox="0 0 120 80" class="gauge-svg">
+                            <path d="M15 70 A50 50 0 0 1 105 70" fill="none" stroke="#2a2a2a" stroke-width="10" stroke-linecap="round"/>
+                            <path id="gauge-fill" d="M15 70 A50 50 0 0 1 105 70" fill="none" stroke="#f59e0b" stroke-width="10" stroke-linecap="round" stroke-dasharray="141.37" stroke-dashoffset="141.37"/>
+                        </svg>
+                        <div class="gauge-label">
+                            <span id="gauge-current">0</span><span class="gauge-unit">L</span>
+                            <div class="gauge-sub">/ <span id="gauge-max">0</span>L</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Fuel Type</label>
+                    <div id="fuel-type-options" class="option-row"></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Amount (Litres)</label>
+                    <div class="slider-group">
+                        <input type="range" id="refuel-slider" min="1" max="100" value="50" step="0.5">
+                        <div class="slider-labels">
+                            <span id="slider-litres">50.0 L</span>
+                            <span id="slider-cost">$0.00</span>
+                        </div>
+                    </div>
+                    <div class="quick-fills">
+                        <button onclick="setFillPercent(25)">25%</button>
+                        <button onclick="setFillPercent(50)">50%</button>
+                        <button onclick="setFillPercent(75)">75%</button>
+                        <button onclick="setFillPercent(100)">Full</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Payment</label>
+                    <div class="option-row">
+                        <button class="option-btn selected" data-payment="cash" onclick="selectPayment('cash')">Cash</button>
+                        <button class="option-btn" data-payment="bank" onclick="selectPayment('bank')">Bank</button>
+                    </div>
+                </div>
+
+                <div class="price-summary">
+                    <div class="price-row"><span>Price/L</span><span id="price-per-litre">$0.00</span></div>
+                    <div class="price-row total"><span>Total</span><span id="price-total">$0.00</span></div>
+                </div>
+
+                <button id="refuel-confirm-btn" class="action-btn" onclick="confirmRefuel()">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M18 10a1 1 0 01-1-1V5a1 1 0 00-1-1H6a1 1 0 00-1 1v14a1 1 0 001 1h10a1 1 0 001-1v-4a1 1 0 011-1h1a1 1 0 001-1v-2a1 1 0 00-1-1h-1zM7 7h8v3H7V7z"/></svg>
+                    Start Refueling
+                </button>
+            </div>
+        </div>
+
+        <!-- OWNER DASHBOARD -->
+        <div id="owner-panel" class="panel hidden">
+            <div class="panel-header">
+                <div class="panel-icon owner-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18l6 3v5.64l-6 3-6-3V7.18l6-3z"/></svg></div>
+                <h2 id="owner-station-name">Station Dashboard</h2>
+                <button class="close-btn" onclick="closePanel()">&times;</button>
+            </div>
+
+            <div class="panel-body">
+                <div class="dashboard-grid">
+                    <div class="dash-card revenue-card">
+                        <div class="dash-card-header">Revenue</div>
+                        <div class="dash-card-value">$<span id="dash-revenue-available">0</span></div>
+                        <div class="dash-card-sub">Total earned: $<span id="dash-revenue-total">0</span></div>
+                        <button class="dash-btn" onclick="withdrawRevenue()">Withdraw</button>
+                    </div>
+                    <div class="dash-card pricing-card">
+                        <div class="dash-card-header">Price Multiplier</div>
+                        <div class="dash-card-value"><span id="dash-price-mult">1.00</span>x</div>
+                        <div class="price-adjust">
+                            <button onclick="adjustPrice(-0.05)">-</button>
+                            <input type="range" id="price-slider" min="0.5" max="2.0" step="0.05" value="1.0" oninput="onPriceSlider(this.value)">
+                            <button onclick="adjustPrice(0.05)">+</button>
+                        </div>
+                        <button class="dash-btn" onclick="savePrice()">Save Price</button>
+                    </div>
+                </div>
+
+                <div class="stock-section">
+                    <h3>Fuel Stock</h3>
+                    <div id="stock-bars"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTRACTS BOARD -->
+        <div id="contracts-panel" class="panel wide-panel hidden">
+            <div class="panel-header">
+                <div class="panel-icon contracts-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zM8 13h8v2H8v-2zm0 4h5v2H8v-2z"/></svg></div>
+                <h2>Fuel Contracts</h2>
+                <button class="close-btn" onclick="closePanel()">&times;</button>
+            </div>
+
+            <div class="panel-body">
+                <div id="active-contract" class="contract-active hidden">
+                    <h3>Active Contract</h3>
+                    <div id="active-contract-content"></div>
+                </div>
+
+                <h3>Available Contracts</h3>
+                <div id="contracts-list" class="contracts-grid"></div>
+
+                <div class="contracts-footer">
+                    <button class="action-btn secondary" onclick="refreshContracts()">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- REFUEL PROGRESS OVERLAY -->
+        <div id="refuel-progress" class="progress-overlay hidden">
+            <div class="progress-card">
+                <div class="progress-pump-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18 10a1 1 0 01-1-1V5a1 1 0 00-1-1H6a1 1 0 00-1 1v14a1 1 0 001 1h10a1 1 0 001-1v-4a1 1 0 011-1h1a1 1 0 001-1v-2a1 1 0 00-1-1h-1zM7 7h8v3H7V7z"/></svg>
+                </div>
+                <div class="progress-info">
+                    <span id="progress-label">Refueling...</span>
+                    <span id="progress-litres">0.0 / 0.0 L</span>
+                </div>
+                <div class="progress-bar-track">
+                    <div id="progress-bar-fill" class="progress-bar-fill"></div>
+                </div>
+                <span class="progress-hint">Press BACKSPACE to cancel</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

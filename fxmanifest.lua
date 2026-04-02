@@ -5,7 +5,15 @@ lua54 'yes'
 name 'hbs-fuel'
 author 'OpenAI'
 description 'QBX + ox_inventory fuel system with pump UX, refinery runtime, tanker roles, and networked nozzle carry'
-version '0.6.0'
+version '0.6.1'
+
+ui_page 'html/index.html'
+
+files {
+    'html/index.html',
+    'html/style.css',
+    'html/app.js'
+}
 
 shared_scripts {
     '@ox_lib/init.lua',
@@ -20,6 +28,7 @@ shared_scripts {
 client_scripts {
     'client/main.lua',
     'client/ui.lua',
+    'client/nui.lua',
     'client/fuel_usage.lua',
     'client/pumps.lua',
     'client/jerrycan.lua',

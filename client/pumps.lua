@@ -9,6 +9,7 @@ local pumpModels = {
 }
 
 local isRefuelling = false
+local pendingRefuelVehicle = nil
 local nozzleState = {
     active = false,
     pump = nil,
@@ -340,30 +341,44 @@ local function doRefuel(vehicle, fuelType, litresTarget, paymentMethod)
     TaskTurnPedToFaceEntity(ped, vehicle, 1000)
     HBSFuelNotify(Config.Notifications.RefuelStarted, 'inform')
 
+    ShowRefuelProgress(('Refuelling %s...'):format(FuelTypes[fuelType].label), approvedTarget)
+
     CreateThread(function()
+        local startTime = GetGameTimer()
         while isRefuelling do
             Wait(200)
             playNozzleCarryAnim(false)
 
             if not DoesEntityExist(vehicle) or not nozzleState.active or not vehicleInPumpRange(vehicle) then
                 cancelReason = Config.Notifications.RefuelBlockedVehicleTooFar
-                pcall(function() lib.cancelProgress() end)
+                isRefuelling = false
+                break
+            end
+
+            local elapsed = GetGameTimer() - startTime
+            local progress = math.min(elapsed / duration, 1.0)
+            UpdateRefuelProgress(approvedTarget * progress, approvedTarget)
+
+            if IsControlJustPressed(0, Config.RefuelCancelKey or 202) then
+                isRefuelling = false
                 break
             end
         end
     end)
 
-    local completed = lib.progressBar({
-        duration = duration,
-        label = ('Refuelling %.2fL of %s...'):format(approvedTarget, FuelTypes[fuelType].label),
-        useWhileDead = false,
-        canCancel = true,
-        disable = { car = true, move = false, combat = true },
-    })
+    local startTime = GetGameTimer()
+    while isRefuelling do
+        Wait(100)
+        if (GetGameTimer() - startTime) >= duration then
+            break
+        end
+    end
 
+    local wasCompleted = isRefuelling
     isRefuelling = false
+    HideRefuelProgress()
 
-    if not completed then
+    if not wasCompleted then
         HBSFuelNotify(cancelReason or Config.Notifications.RefuelCancelled, cancelReason and 'error' or 'inform')
         showPumpUi('Nozzle ready - target a vehicle to refuel or target the pump to return it')
         return
@@ -423,68 +438,25 @@ local function promptRefuelVehicle(vehicle)
         return
     end
 
-    local input = lib.inputDialog('Refuel Vehicle', {
-        {
-            type = 'select',
-            label = 'Fuel Type',
-            options = fuelOptions,
-            default = fuelOptions[1].value,
-            required = true,
-        },
-        {
-            type = 'number',
-            label = 'Litres',
-            description = ('Max %.2fL'):format(litresNeeded),
-            default = litresNeeded,
-            min = 0.5,
-            max = litresNeeded,
-            step = 0.5,
-            required = true,
-        },
-        {
-            type = 'select',
-            label = 'Pay With',
-            options = {
-                { label = 'Cash', value = 'cash' },
-                { label = 'Bank', value = 'bank' },
-            },
-            default = 'cash',
-            required = true,
-        }
-    })
+    pendingRefuelVehicle = vehicle
+    OpenRefuelNUI(nozzleState.stationId, nozzleState.station, vehicle)
+end
 
-    if not input or not input[1] or not input[2] or not input[3] then
-        return
-    end
+AddEventHandler('hbs-fuel:client:nuiRefuelConfirmed', function(fuelType, litres, paymentMethod)
+    local vehicle = pendingRefuelVehicle
+    pendingRefuelVehicle = nil
 
-    local fuelType = input[1]
-    local requestedLitres = tonumber(input[2]) or 0.0
-    local paymentMethod = input[3]
-    if requestedLitres <= 0.0 then
-        return
-    end
+    if not vehicle or not DoesEntityExist(vehicle) then return end
+    if not nozzleState.active then return end
 
-    local preview = lib.callback.await('hbs-fuel:server:previewRefuel', false, nozzleState.stationId, fuelType, requestedLitres, paymentMethod)
+    local preview = lib.callback.await('hbs-fuel:server:previewRefuel', false, nozzleState.stationId, fuelType, litres, paymentMethod)
     if not preview or not preview.ok then
         HBSFuelNotify(preview and preview.message or 'Unable to quote refuel.', 'error')
         return
     end
 
-    local stationLabel = preview.stationLabel or (nozzleState.station and nozzleState.station.label) or 'Fuel Station'
-    local confirmed = lib.alertDialog({
-        header = 'Confirm Refuel',
-        content = ('Station: %s\nFuel: %s\nLitres: %.2fL\nPrice/L: $%.2f\nEstimated total: $%.2f\nPayment: %s')
-            :format(stationLabel, FuelTypes[fuelType].label, preview.approvedLitres or requestedLitres, preview.pricePerLitre or 0.0, preview.totalPrice or 0.0, paymentMethod == 'bank' and 'Bank' or 'Cash'),
-        centered = true,
-        cancel = true,
-    })
-
-    if confirmed ~= 'confirm' then
-        return
-    end
-
-    doRefuel(vehicle, fuelType, requestedLitres, paymentMethod)
-end
+    doRefuel(vehicle, fuelType, litres, paymentMethod)
+end)
 
 local function grabNozzle(entity)
     if Config.RequirePlayerOutsideVehicleForPump and IsPedInAnyVehicle(PlayerPedId(), false) then

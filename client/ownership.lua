@@ -151,7 +151,7 @@ local function handleEntityInteraction(entityType, entityId)
     local ownership = lib.callback.await('hbs-fuel:server:getOwnership', false, entityType, entityId)
 
     if ownership and ownership.owned and ownership.isOwner then
-        openDashboard(entityType, entityId)
+        OpenOwnerDashboardNUI(entityType, entityId)
     elseif not ownership or not ownership.owned then
         openPurchaseDialog(entityType, entityId)
     else
@@ -228,7 +228,7 @@ RegisterCommand('fuelproperties', function()
             ),
             icon = entity.entityType == 'station' and 'gas-pump' or 'industry',
             onSelect = function()
-                openDashboard(entity.entityType, entity.entityId)
+                OpenOwnerDashboardNUI(entity.entityType, entity.entityId)
             end,
         }
     end

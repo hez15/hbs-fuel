@@ -260,7 +260,7 @@ local function openContractsBoard()
 end
 
 RegisterNetEvent('hbs-fuel:client:openContractsBoard', function()
-    openContractsBoard()
+    OpenContractsNUI()
 end)
 
 RegisterNetEvent('hbs-fuel:client:contractCompleted', function(payout)
@@ -269,5 +269,5 @@ RegisterNetEvent('hbs-fuel:client:contractCompleted', function(payout)
 end)
 
 RegisterCommand('fuelcontracts', function()
-    openContractsBoard()
+    OpenContractsNUI()
 end, false)
