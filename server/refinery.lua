@@ -28,7 +28,6 @@ local function getTankerMaxLitresForRole(role)
     return data and tonumber(data.maxLitres) or Config.Tanker.DefaultMaxLitres
 end
 
-
 exports('AddCrudeToRefinery', function(refineryId, litres)
     local refinery = getRefinery(refineryId)
     if not refinery then return false end
@@ -127,7 +126,7 @@ lib.callback.register('hbs-fuel:server:loadCrudeTanker', function(_, plate, litr
     return { ok = true, litres = moved, tankerLitres = finalLitres, maxLitres = maxLitres, message = Config.Notifications.TankerLoaded }
 end)
 
-lib.callback.register('hbs-fuel:server:unloadCrudeToRefinery', function(_, refineryId, plate, litres)
+lib.callback.register('hbs-fuel:server:unloadCrudeToRefinery', function(source, refineryId, plate, litres)
     litres = tonumber(litres) or 0.0
     local refinery = getRefinery(refineryId)
     if not refinery or not plate or litres <= 0.0 then
@@ -148,9 +147,28 @@ lib.callback.register('hbs-fuel:server:unloadCrudeToRefinery', function(_, refin
 
     refinery.crude.current = refinery.crude.current + moved
     SaveRefineryState(refineryId)
-    exports['hbs-fuel']:SetTankerLoad(plate, tankerLitres - moved > 0.01 and 'crude' or nil, math.max(tankerLitres - moved, 0.0), tonumber(load.max_litres) or Config.Tanker.DefaultMaxLitres)
 
-    return { ok = true, litres = moved, refineryCrude = refinery.crude.current, message = Config.Notifications.TankerUnloaded }
+    exports['hbs-fuel']:SetTankerLoad(
+        plate,
+        tankerLitres - moved > 0.01 and 'crude' or nil,
+        math.max(tankerLitres - moved, 0.0),
+        tonumber(load.max_litres) or Config.Tanker.DefaultMaxLitres
+    )
+
+    TriggerClientEvent('ox_lib:notify', source, {
+        title = 'Fuel',
+        description = ('Delivered %.2fL crude.'):format(moved),
+        type = 'success'
+    })
+
+    TriggerClientEvent('hbs-fuel:client:contractDeliveredCrude', source, moved)
+
+    return {
+        ok = true,
+        litres = moved,
+        refineryCrude = refinery.crude.current,
+        message = Config.Notifications.TankerUnloaded
+    }
 end)
 
 lib.callback.register('hbs-fuel:server:loadRefinedProduct', function(_, refineryId, plate, fuelType, litres, modelName)
@@ -193,5 +211,11 @@ lib.callback.register('hbs-fuel:server:loadRefinedProduct', function(_, refinery
     SaveRefineryState(refineryId)
     exports['hbs-fuel']:SetTankerLoad(plate, fuelType, currentLitres + moved, maxLitres)
 
-    return { ok = true, litres = moved, fuelType = fuelType, tankerLitres = currentLitres + moved, message = Config.Notifications.TankerLoaded }
+    return {
+        ok = true,
+        litres = moved,
+        fuelType = fuelType,
+        tankerLitres = currentLitres + moved,
+        message = Config.Notifications.TankerLoaded
+    }
 end)

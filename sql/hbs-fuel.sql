@@ -41,14 +41,23 @@ CREATE TABLE IF NOT EXISTS `hbs_fuel_tanker_state` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `hbs_fuel_contracts` (
-  `id` VARCHAR(64) NOT NULL,
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `contract_id` VARCHAR(64) NOT NULL,
   `type` VARCHAR(32) NOT NULL,
-  `station_id` VARCHAR(64) NULL,
-  `fuel_type` VARCHAR(32) NULL,
-  `litres` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  `payout` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  `status` VARCHAR(32) NOT NULL DEFAULT 'open',
-  `accepted_by` VARCHAR(64) NULL,
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+  `product` VARCHAR(32) NOT NULL,
+  `pickup_type` VARCHAR(64) NOT NULL,
+  `pickup_id` VARCHAR(64) NOT NULL,
+  `dropoff_type` VARCHAR(64) NOT NULL,
+  `dropoff_id` VARCHAR(64) NOT NULL,
+  `litres_required` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  `litres_delivered` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  `payout` INT NOT NULL DEFAULT 0,
+  `urgency` VARCHAR(16) NOT NULL DEFAULT 'normal',
+  `status` VARCHAR(16) NOT NULL DEFAULT 'available',
+  `accepted_by` INT NULL DEFAULT NULL,
+  `expires_at` DATETIME NULL DEFAULT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_hbs_fuel_contracts_contract_id` (`contract_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

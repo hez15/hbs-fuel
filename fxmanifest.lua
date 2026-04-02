@@ -4,8 +4,8 @@ lua54 'yes'
 
 name 'hbs-fuel'
 author 'OpenAI'
-description 'QBX + ox_inventory fuel core with station stock, refinery, and tanker scaffolding'
-version '0.1.0'
+description 'QBX + ox_inventory fuel system with pump UX, refinery runtime, tanker roles, and networked nozzle carry'
+version '0.5.1'
 
 shared_scripts {
     '@ox_lib/init.lua',
@@ -25,6 +25,7 @@ client_scripts {
     'client/jerrycan.lua',
     'client/tanker.lua',
     'client/industrial.lua',
+    'client/contracts.lua',
     'client/zones.lua'
 }
 
@@ -38,6 +39,7 @@ server_scripts {
     'server/refinery.lua',
     'server/jobs.lua',
     'server/tanker.lua',
+    'server/contracts.lua',
     'server/admin.lua'
 }
 

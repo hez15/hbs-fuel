@@ -1,123 +1,119 @@
-# hbs-fuel v0.4.0
+# hbs-fuel v0.5.1
 
-Starter resource for a **QBX + ox_inventory** fuel system that replaces basic fuel usage and lays the groundwork for:
+QBX + ox_inventory fuel system with:
 
-- vehicle fuel drain
-- pump refuelling
-- jerry cans
-- station stock
-- refinery stock
-- tanker loads
-- future delivery contracts
+- vehicle fuel usage and persistence
+- ox_target public pump refuelling
+- car nozzle visuals with networked carry prop sync
+- refinery hose flow for crude and refined transfers
+- station stock and passive demand
+- refinery crude and product storage
+- motor oil packaging
+- tanker role separation
 
-## Included right now
+## Current feature status
 
-### Working first pass
-- fuel drain while driving
-- per-vehicle tank capacities
-- fuel saved by plate to database
-- ox_target pump nozzle flow (grab nozzle -> target vehicle -> refuel)
-- station stock preview + per-tick sale logic
-- emergency refill fallback toggle
-- passive demand drain on stations
-- refinery state + batch processing exports
-- tanker state persistence export
-- basic admin commands
+### Working now
+- vehicle fuel drain while driving
+- litres-based tank system
+- fuel saved by plate
+- public pump flow: grab nozzle -> target vehicle -> refuel
+- public pump nozzle prop: `prop_cs_fuel_nozle`
+- refinery / industrial hose prop: `prop_hose_nozzle`
+- networked public nozzle carry prop so nearby players can see it
+- cash / bank selection when refuelling
+- station stock usage with emergency fallback
+- passive demand drain
+- crude intake and refinery storage
+- refinery runtime state and batch processing
+- motor oil bottle / drum packaging
+- tanker role split:
+  - `tanker2` = crude only
+  - `tanker` = refined products only
 
-### Scaffolding only for now
-- full tanker gameplay loop
-- contract board UI
-- crude hauling gameplay
-- station owner logic
-- proper nozzle / rope / prop system
-- nozzle prop / rope visuals
-- motor oil packaging flow
-- jet fuel airport job loop
+### Still to build / finish
+- full contracts UI / job board
+- ownership backend and owner dashboard
+- society purchase flow
+- fully synced rope visuals
+- final balancing pass
 
 ## Install
 
-1. Put the folder in your resources, for example:
+1. Place the folder in your resources, for example:
    `resources/[hbs]/hbs-fuel`
-2. Import `sql/hbs-fuel.sql`
-3. Ensure these resources are started before `hbs-fuel`:
-   - ox_lib
-   - oxmysql
-   - ox_inventory
-   - ox_target
-   - qbx_core
-4. Add `ensure hbs-fuel` to your server cfg.
+2. Import `sql/hbs-fuel.sql` into your database.
+3. Make sure these resources start before `hbs-fuel`:
+   - `ox_lib`
+   - `oxmysql`
+   - `ox_inventory`
+   - `ox_target`
+   - `qbx_core`
+4. Add `ensure hbs-fuel` to your server config.
+5. Restart the server or `refresh` then `ensure hbs-fuel`.
 
-## Key config files
+## Update steps
 
-- `shared/config.lua` - feature toggles and general settings
-- `shared/stations.lua` - station placeholders and stock levels
-- `shared/refineries.lua` - refinery storage setup
-- `shared/vehicles.lua` - vehicle tank sizes
-- `shared/fueltypes.lua` - fuel products and base prices
+When updating from an older version:
 
-## Important notes
+1. Replace the resource files.
+2. Re-run `sql/hbs-fuel.sql` so missing tables are created.
+3. Check `shared/config.lua` for any new settings and merge your custom values back in.
+4. Confirm your station / refinery coords still match your setup.
 
-### 1. Station config is placeholder only
-The included stations are example entries. Add all your real stations to `shared/stations.lua`.
+## Important config notes
 
-### 2. Fuel is stored internally as litres
-The GTA native fuel level is only used as the display percentage.
+### Public vs industrial nozzle props
+Public car pumps now use:
+- `Config.Nozzles.Vehicle.model = 'prop_cs_fuel_nozle'`
 
-### 3. Jerry can item hookup
-The client event already exists:
-- `hbs-fuel:client:useJerryCan`
+Industrial / refinery hose flow uses:
+- `Config.Nozzles.Industrial.model = 'prop_hose_nozzle'`
+- `Config.IndustrialNozzle.model = 'prop_hose_nozzle'`
 
-Wire your ox_inventory item to that event in your item definition / item use setup.
+### Notifications
+Notifications are controlled by:
+- `Config.NotificationsEnabled`
+- `Config.NotifyTitle`
 
-Suggested metadata:
+### Tanker roles
+The default tanker role split is:
+- `tanker2` = crude
+- `tanker` = refined fuel
 
-```lua
-metadata = {
-    fuelType = 'regular',
-    litres = 15.0
-}
-```
+### Vehicle fuel compatibility
+Fuel usage by class / model is configured in:
+- `Config.VehicleFuelRules`
 
-### 4. Pump refuelling flow
-Use ox_target on a pump to grab the nozzle, then target the vehicle to choose fuel type and litres.
+### Station stock
+Station stock and fallback behaviour are configured in:
+- `shared/stations.lua`
+- `Config.Features`
 
-### 5. Admin commands
+## File map
+
+- `shared/config.lua` - general settings and toggles
+- `shared/stations.lua` - station definitions and stock
+- `shared/refineries.lua` - refinery layout and storage
+- `client/pumps.lua` - public pump and nozzle flow
+- `client/industrial.lua` - refinery / tanker hose flow
+- `server/stations.lua` - station pricing / stock logic
+- `server/refinery.lua` - refinery batch logic
+- `server/persistence.lua` - DB persistence
+
+## Admin commands
+
 - `/fuel_refill_station [stationId] [fuelType] [litres]`
 - `/fuel_toggle_stock`
 
-## Exports
+## Notes
 
-### Client
-- `exports['hbs-fuel']:GetVehicleFuel(vehicle)`
-- `exports['hbs-fuel']:SetVehicleFuel(vehicle, litres)`
-- `exports['hbs-fuel']:AddVehicleFuel(vehicle, litres)`
-- `exports['hbs-fuel']:GetTankerVehicleLoad(vehicle)`
-
-### Server
-- `exports['hbs-fuel']:GetStationStock(stationId, fuelType)`
-- `exports['hbs-fuel']:AddStationStock(stationId, fuelType, litres)`
-- `exports['hbs-fuel']:AddCrudeToRefinery(refineryId, litres)`
-- `exports['hbs-fuel']:ProcessRefineryBatch(refineryId)`
-- `exports['hbs-fuel']:SetTankerLoad(plate, fuelType, litres, maxLitres)`
-- `exports['hbs-fuel']:CreateFuelContract(data)`
-
-## Recommended next step
-
-Build phase 2 next:
-- proper station list
-- tanker load / unload interactions
-- refinery loading points
-- crude intake jobs
-- contract board + payout logic
+- The public nozzle prop is network-synced enough for other players to see it in-hand.
+- Rope visuals are still local and not fully multiplayer-perfect yet.
+- Fuel is stored internally in litres; native fuel level is just the visible gameplay representation.
 
 
-## v0.4 additions
-
-- Cypress refinery layout using your supplied coords
-- Crude source loading point
-- Dual crude delivery/unload points
-- Separate valve + start batch interactions
-- Tanker load point for refined fuel
-- Industrial hose/nozzle flow using `prop_hose_nozzle`
-- Station tanker unload hose flow
-- Vehicle fuel-type rules so road vehicles use regular/diesel and aircraft use jet fuel
+## v0.5.2 quick notes
+- Public pump carry prop changed to `prop_cs_fuel_hose`.
+- Added stronger nozzle cleanup so returning the nozzle detaches and deletes the local/remote prop more reliably.
+- Rope remains a GTA rope effect, not a swappable model prop.

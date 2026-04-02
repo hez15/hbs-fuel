@@ -58,8 +58,21 @@ Config.NozzleMaxDistance = 12.0
 Config.RequirePlayerOutsideVehicleForPump = true
 Config.ShutOffEngineDuringRefuel = true
 
+Config.NotificationsEnabled = false
+Config.NotifyTitle = 'Fuel'
 
-Config.NozzlePropModel = 'prop_hose_nozzle'
+
+Config.Nozzles = {
+    Vehicle = {
+        model = 'prop_cs_fuel_nozle',
+    },
+    Industrial = {
+        model = 'prop_hose_nozzle',
+    }
+}
+
+-- Legacy fallback kept for compatibility with older code paths.
+Config.NozzlePropModel = Config.Nozzles.Vehicle.model
 Config.NozzleCarryAnim = {
     dict = 'timetable@gardener@filling_can',
     clip = 'gar_ig_5_filling_can',
@@ -237,7 +250,7 @@ Config.Usage = {
         [14] = 0.0,
         [15] = 2.80,
         [16] = 3.50,
-        [17] = 1.00,
+        [17] = 2.00,
         [18] = 1.40,
         [19] = 1.60,
         [20] = 1.20,
@@ -255,6 +268,33 @@ Config.RefineryRecipes = {
             motoroil = 10.0,
         },
         processTime = 300,
+    }
+}
+
+Config.Contracts = {
+    Enabled = true,
+    ExpirySeconds = 1800,
+    GenerationIntervalSeconds = 120,
+    CrudeMinContracts = 1,
+    DefaultCrudeLitres = 8000.0,
+    MaxActivePerPlayer = 1,
+    MaxPerStation = 2,
+
+    UrgencyMultipliers = {
+        normal = 1.0,
+        high = 1.15,
+        critical = 1.30,
+    },
+
+    Payout = {
+        crude = {
+            base = 900,
+            perLitre = 0.20,
+        },
+        refined = {
+            base = 1200,
+            perLitre = 0.35,
+        }
     }
 }
 

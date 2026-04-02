@@ -1,12 +1,8 @@
-CreateThread(function()
-    Wait(1000)
-    print('[hbs-fuel] starter resource loaded')
-end)
 local activeNozzles = {}
 
 CreateThread(function()
     Wait(1000)
-    print('[hbs-fuel] starter resource loaded')
+    print('[hbs-fuel] resource loaded')
 end)
 
 RegisterNetEvent('hbs-fuel:server:syncNozzleGrab', function()

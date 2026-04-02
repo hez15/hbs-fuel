@@ -71,6 +71,16 @@ local function loadAnimDict(dict)
     return true
 end
 
+
+local function deletePropEntity(entity)
+    if entity and DoesEntityExist(entity) then
+        DetachEntity(entity, true, true)
+        SetEntityAsMissionEntity(entity, true, true)
+        DeleteObject(entity)
+        DeleteEntity(entity)
+    end
+end
+
 local function clearNozzleVisuals()
     if nozzleVisual.rope then
         DeleteRope(nozzleVisual.rope)
@@ -81,8 +91,8 @@ local function clearNozzleVisuals()
         RopeUnloadTextures()
     end
 
-    if nozzleVisual.prop and DoesEntityExist(nozzleVisual.prop) then
-        DeleteEntity(nozzleVisual.prop)
+    if nozzleVisual.prop then
+        deletePropEntity(nozzleVisual.prop)
     end
     nozzleVisual.prop = nil
 
@@ -517,8 +527,8 @@ RegisterNetEvent('hbs-fuel:client:syncNozzleGrab', function(serverId)
     local ped = GetPlayerPed(player)
     if not DoesEntityExist(ped) then return end
 
-    if remoteNozzles[serverId] and DoesEntityExist(remoteNozzles[serverId]) then
-        DeleteEntity(remoteNozzles[serverId])
+    if remoteNozzles[serverId] then
+        deletePropEntity(remoteNozzles[serverId])
         remoteNozzles[serverId] = nil
     end
 
@@ -554,9 +564,7 @@ end)
 
 RegisterNetEvent('hbs-fuel:client:syncNozzleReturn', function(serverId)
     if remoteNozzles[serverId] then
-        if DoesEntityExist(remoteNozzles[serverId]) then
-            DeleteEntity(remoteNozzles[serverId])
-        end
+        deletePropEntity(remoteNozzles[serverId])
         remoteNozzles[serverId] = nil
     end
 end)
@@ -666,9 +674,7 @@ AddEventHandler('onResourceStop', function(resource)
     TriggerServerEvent('hbs-fuel:server:syncNozzleReturn')
 
     for serverId, obj in pairs(remoteNozzles) do
-        if DoesEntityExist(obj) then
-            DeleteEntity(obj)
-        end
+        deletePropEntity(obj)
         remoteNozzles[serverId] = nil
     end
 
