@@ -2,6 +2,7 @@ Refineries = {
     cypress_refinery = {
         label = 'Cypress Refinery',
         coords = vec3(1687.2, -1662.05, 110.44),
+        pedCoords = vec4(1685.0, -1660.0, 110.44, 220.0),
         radius = 90.0,
         crude = {
             current = 10000.0,

@@ -20,7 +20,8 @@ function OpenRefuelNUI(stationId, station, vehicle)
     local allowedTypes = HBSFuel.GetAllowedFuelTypes(vehicle)
     local fuelOptions = {}
 
-    for _, fuelType in ipairs(station and station.supports or { Config.DefaultFuelType }) do
+    local supported = station and station.supports or (Config.UnmappedStationSupportedFuelTypes or { Config.DefaultFuelType })
+    for _, fuelType in ipairs(supported) do
         if FuelTypes[fuelType] and not FuelTypes[fuelType].byproduct then
             local allowed = false
             for _, a in ipairs(allowedTypes) do
@@ -166,7 +167,8 @@ end
 
 local function formatExpiry(expiresAt)
     if not expiresAt then return '?' end
-    local remaining = expiresAt - os.time()
+    local now = GetCloudTimeAsInt()
+    local remaining = expiresAt - now
     if remaining <= 0 then return 'Expired' end
     local mins = math.floor(remaining / 60)
     if mins > 0 then return ('%dm'):format(mins) end

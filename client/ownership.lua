@@ -1,3 +1,6 @@
+local spawnedPeds = {}
+local spawnedBlips = {}
+
 local function getEntityLabel(entityType, entityId)
     if entityType == 'station' and Stations[entityId] then
         return Stations[entityId].label
@@ -39,112 +42,6 @@ local function openPurchaseDialog(entityType, entityId)
     end
 end
 
-local function openDashboard(entityType, entityId)
-    local data = lib.callback.await('hbs-fuel:server:getOwnerDashboard', false, entityType, entityId)
-    if not data or not data.ok then
-        HBSFuelNotify(data and data.message or 'Unable to load dashboard.', 'error')
-        return
-    end
-
-    local options = {}
-
-    options[#options + 1] = {
-        title = data.label or entityId,
-        description = ('Type: %s'):format(entityType == 'station' and 'Fuel Station' or 'Refinery'),
-        icon = entityType == 'station' and 'gas-pump' or 'industry',
-        readOnly = true,
-    }
-
-    for fuelType, stock in pairs(data.stock or {}) do
-        local pct = stock.max > 0 and math.floor((stock.current / stock.max) * 100) or 0
-        options[#options + 1] = {
-            title = ('%s Stock'):format(fuelType),
-            description = ('%.0f / %.0f L (%d%%)'):format(stock.current, stock.max, pct),
-            icon = 'fill-drip',
-            readOnly = true,
-            progress = pct,
-        }
-    end
-
-    options[#options + 1] = {
-        title = 'Revenue',
-        description = ('Total: $%.2f | Withdrawn: $%.2f | Available: $%.2f'):format(
-            data.revenueTotal or 0, data.revenueWithdrawn or 0, data.revenueAvailable or 0
-        ),
-        icon = 'money-bill-trend-up',
-        iconColor = '#4ade80',
-        readOnly = true,
-    }
-
-    if (data.revenueAvailable or 0) > 0 then
-        options[#options + 1] = {
-            title = ('Withdraw $%d'):format(math.floor(data.revenueAvailable)),
-            description = 'Deposit available revenue to your bank account.',
-            icon = 'money-bill-transfer',
-            iconColor = '#60a5fa',
-            onSelect = function()
-                local result = lib.callback.await('hbs-fuel:server:withdrawRevenue', false, entityType, entityId)
-                if result and result.ok then
-                    HBSFuelNotify(('Withdrawn $%d to your bank.'):format(result.withdrawn or 0), 'success')
-                else
-                    HBSFuelNotify(result and result.message or 'Withdrawal failed.', 'error')
-                end
-            end,
-        }
-    end
-
-    if entityType == 'station' and data.priceMultiplier then
-        options[#options + 1] = {
-            title = ('Price Multiplier: %.2fx'):format(data.priceMultiplier),
-            description = ('Range: %.1fx - %.1fx'):format(
-                Config.Ownership.MinPriceMultiplier or 0.5,
-                Config.Ownership.MaxPriceMultiplier or 2.0
-            ),
-            icon = 'tag',
-            onSelect = function()
-                local input = lib.inputDialog('Set Price Multiplier', {
-                    {
-                        type = 'number',
-                        label = 'Price Multiplier',
-                        default = data.priceMultiplier,
-                        min = Config.Ownership.MinPriceMultiplier or 0.5,
-                        max = Config.Ownership.MaxPriceMultiplier or 2.0,
-                        step = 0.05,
-                    }
-                })
-
-                if not input then return end
-
-                local newMult = tonumber(input[1])
-                if not newMult then return end
-
-                local result = lib.callback.await('hbs-fuel:server:setStationPrice', false, entityId, newMult)
-                if result and result.ok then
-                    HBSFuelNotify(('Price multiplier set to %.2fx'):format(result.priceMultiplier), 'success')
-                else
-                    HBSFuelNotify(result and result.message or 'Failed to set price.', 'error')
-                end
-            end,
-        }
-    end
-
-    options[#options + 1] = {
-        title = 'Refresh',
-        icon = 'arrows-rotate',
-        onSelect = function()
-            openDashboard(entityType, entityId)
-        end,
-    }
-
-    lib.registerContext({
-        id = 'hbs_fuel_owner_dashboard',
-        title = ('Owner: %s'):format(data.label or entityId),
-        options = options,
-    })
-
-    lib.showContext('hbs_fuel_owner_dashboard')
-end
-
 local function handleEntityInteraction(entityType, entityId)
     if not Config.Ownership or not Config.Ownership.Enabled then return end
 
@@ -159,47 +56,113 @@ local function handleEntityInteraction(entityType, entityId)
     end
 end
 
+local function spawnPed(modelName, coords, heading)
+    local hash = type(modelName) == 'string' and joaat(modelName) or modelName
+    RequestModel(hash)
+    local timeout = 0
+    while not HasModelLoaded(hash) and timeout < 5000 do
+        Wait(10)
+        timeout = timeout + 10
+    end
+    if not HasModelLoaded(hash) then return nil end
+
+    local ped = CreatePed(0, hash, coords.x, coords.y, coords.z - 1.0, heading or 0.0, false, true)
+    if not ped or ped == 0 then return nil end
+
+    FreezeEntityPosition(ped, true)
+    SetEntityInvincible(ped, true)
+    SetBlockingOfNonTemporaryEvents(ped, true)
+    SetPedDiesWhenInjured(ped, false)
+    SetPedCanPlayAmbientAnims(ped, true)
+    SetPedCanRagdollFromPlayerImpact(ped, false)
+    SetEntityAsMissionEntity(ped, true, true)
+
+    SetModelAsNoLongerNeeded(hash)
+    return ped
+end
+
+local function createBlip(coords, sprite, colour, label)
+    local blip = AddBlipForCoord(coords.x, coords.y, coords.z)
+    SetBlipSprite(blip, sprite)
+    SetBlipDisplay(blip, 4)
+    SetBlipScale(blip, 0.7)
+    SetBlipColour(blip, colour)
+    SetBlipAsShortRange(blip, true)
+    BeginTextCommandSetBlipName('STRING')
+    AddTextComponentSubstringPlayerName(label)
+    EndTextCommandSetBlipName(blip)
+    return blip
+end
+
+local function getPedCoords(data)
+    if data.pedCoords then
+        return data.pedCoords
+    end
+    return vec4(data.coords.x + 1.5, data.coords.y + 1.5, data.coords.z, 0.0)
+end
+
+local function getPedHeading(data)
+    if data.pedCoords and data.pedCoords.w then
+        return data.pedCoords.w
+    end
+    return 0.0
+end
+
 CreateThread(function()
     if not Config.Ownership or not Config.Ownership.Enabled then return end
 
-    Wait(1500)
+    Wait(2000)
+
+    local pedModel = Config.Ownership.PedModel or 's_m_y_autoshop_02'
 
     for stationId, station in pairs(Stations) do
-        if Config.Ownership.StationPrices[stationId] or true then
-            exports['ox_target']:addSphereZone({
-                coords = station.coords,
-                radius = 2.0,
-                options = {
-                    {
-                        name = ('fuel_ownership_station_%s'):format(stationId),
-                        label = 'Station Management',
-                        icon = 'fas fa-building',
-                        onSelect = function()
-                            handleEntityInteraction('station', stationId)
-                        end,
-                    }
+        local pedPos = getPedCoords(station)
+        local heading = getPedHeading(station)
+
+        local ped = spawnPed(pedModel, pedPos, heading)
+        if ped then
+            spawnedPeds[#spawnedPeds + 1] = ped
+
+            exports['ox_target']:addLocalEntity(ped, {
+                {
+                    name = ('fuel_ownership_station_%s'):format(stationId),
+                    label = 'Station Management',
+                    icon = 'fas fa-gas-pump',
+                    distance = 2.5,
+                    onSelect = function()
+                        handleEntityInteraction('station', stationId)
+                    end,
                 }
             })
         end
+
+        local blip = createBlip(station.coords, 361, 46, station.label)
+        spawnedBlips[#spawnedBlips + 1] = blip
     end
 
     for refineryId, refinery in pairs(Refineries) do
-        if Config.Ownership.RefineryPrices[refineryId] or true then
-            exports['ox_target']:addSphereZone({
-                coords = refinery.coords,
-                radius = 2.0,
-                options = {
-                    {
-                        name = ('fuel_ownership_refinery_%s'):format(refineryId),
-                        label = 'Refinery Management',
-                        icon = 'fas fa-industry',
-                        onSelect = function()
-                            handleEntityInteraction('refinery', refineryId)
-                        end,
-                    }
+        local pedPos = getPedCoords(refinery)
+        local heading = getPedHeading(refinery)
+
+        local ped = spawnPed(pedModel, pedPos, heading)
+        if ped then
+            spawnedPeds[#spawnedPeds + 1] = ped
+
+            exports['ox_target']:addLocalEntity(ped, {
+                {
+                    name = ('fuel_ownership_refinery_%s'):format(refineryId),
+                    label = 'Refinery Management',
+                    icon = 'fas fa-industry',
+                    distance = 2.5,
+                    onSelect = function()
+                        handleEntityInteraction('refinery', refineryId)
+                    end,
                 }
             })
         end
+
+        local blip = createBlip(refinery.coords, 436, 47, refinery.label)
+        spawnedBlips[#spawnedBlips + 1] = blip
     end
 end)
 
@@ -241,3 +204,19 @@ RegisterCommand('fuelproperties', function()
 
     lib.showContext('hbs_fuel_my_properties')
 end, false)
+
+AddEventHandler('onResourceStop', function(resource)
+    if resource ~= GetCurrentResourceName() then return end
+
+    for _, ped in ipairs(spawnedPeds) do
+        if DoesEntityExist(ped) then
+            DeleteEntity(ped)
+        end
+    end
+
+    for _, blip in ipairs(spawnedBlips) do
+        if DoesBlipExist(blip) then
+            RemoveBlip(blip)
+        end
+    end
+end)
