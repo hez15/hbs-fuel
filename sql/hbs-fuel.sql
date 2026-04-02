@@ -61,3 +61,18 @@ CREATE TABLE IF NOT EXISTS `hbs_fuel_contracts` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_hbs_fuel_contracts_contract_id` (`contract_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `hbs_fuel_ownership` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `entity_type` ENUM('station', 'refinery') NOT NULL,
+  `entity_id` VARCHAR(64) NOT NULL,
+  `owner_identifier` VARCHAR(64) DEFAULT NULL,
+  `owner_name` VARCHAR(128) DEFAULT NULL,
+  `purchase_price` INT NOT NULL DEFAULT 0,
+  `purchased_at` TIMESTAMP NULL DEFAULT NULL,
+  `revenue_total` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `revenue_withdrawn` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_hbs_fuel_ownership_entity` (`entity_type`, `entity_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

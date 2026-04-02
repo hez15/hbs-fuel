@@ -1,19 +1,19 @@
 FuelTypes = {
     regular = {
         label = 'Regular',
-        price = 1.85,
+        price = 2.15,         -- balanced for typical server economy
         aircraftOnly = false,
         canUseJerryCan = true,
     },
     diesel = {
         label = 'Diesel',
-        price = 1.95,
+        price = 2.45,         -- premium over regular for commercial vehicles
         aircraftOnly = false,
         canUseJerryCan = true,
     },
     jetfuel = {
         label = 'Jet Fuel',
-        price = 3.80,
+        price = 4.50,         -- aviation premium
         aircraftOnly = true,
         canUseJerryCan = false,
     },

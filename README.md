@@ -1,15 +1,17 @@
-# hbs-fuel v0.5.1
+# hbs-fuel v0.6.0
 
 QBX + ox_inventory fuel system with:
 
 - vehicle fuel usage and persistence
 - ox_target public pump refuelling
-- car nozzle visuals with networked carry prop sync
+- car nozzle visuals with networked carry prop and rope sync
 - refinery hose flow for crude and refined transfers
 - station stock and passive demand
 - refinery crude and product storage
 - motor oil packaging
 - tanker role separation
+- contract system with job board UI
+- station and refinery ownership with purchase flow and owner dashboard
 
 ## Current feature status
 
@@ -20,7 +22,8 @@ QBX + ox_inventory fuel system with:
 - public pump flow: grab nozzle -> target vehicle -> refuel
 - public pump nozzle prop: `prop_cs_fuel_nozle`
 - refinery / industrial hose prop: `prop_hose_nozzle`
-- networked public nozzle carry prop so nearby players can see it
+- networked public nozzle carry prop and rope so nearby players see the hose
+- networked industrial hose carry prop and rope for refinery/tanker operations
 - cash / bank selection when refuelling
 - station stock usage with emergency fallback
 - passive demand drain
@@ -30,13 +33,20 @@ QBX + ox_inventory fuel system with:
 - tanker role split:
   - `tanker2` = crude only
   - `tanker` = refined products only
-
-### Still to build / finish
-- full contracts UI / job board
-- ownership backend and owner dashboard
-- society purchase flow
-- fully synced rope visuals
-- final balancing pass
+- contract system:
+  - job board UI with urgency color-coding and location names
+  - auto-waypoint on contract accept
+  - progress HUD during active delivery
+  - payout notification on completion
+  - refresh and cancel from the board
+  - contract board accessible from refinery/station ox_target and `/fuelcontracts` command
+- ownership system:
+  - purchase unowned stations and refineries
+  - owner dashboard with stock levels, revenue tracking, price adjustment
+  - revenue withdrawal to bank
+  - `/fuelproperties` command to view owned properties
+- dynamic pricing based on station stock levels
+- balanced fuel drain rates, prices, and contract payouts
 
 ## Install
 
@@ -57,9 +67,10 @@ QBX + ox_inventory fuel system with:
 When updating from an older version:
 
 1. Replace the resource files.
-2. Re-run `sql/hbs-fuel.sql` so missing tables are created.
+2. Re-run `sql/hbs-fuel.sql` so missing tables are created (including the new `hbs_fuel_ownership` table).
 3. Check `shared/config.lua` for any new settings and merge your custom values back in.
 4. Confirm your station / refinery coords still match your setup.
+5. Review `Config.Ownership` settings and set station/refinery purchase prices for your economy.
 
 ## Important config notes
 
@@ -90,6 +101,13 @@ Station stock and fallback behaviour are configured in:
 - `shared/stations.lua`
 - `Config.Features`
 
+### Ownership
+Station and refinery ownership is configured in:
+- `Config.Ownership`
+- Set `Config.Ownership.Enabled = false` to disable the ownership system
+- Adjust `StationPrices` and `RefineryPrices` for your server economy
+- `OwnerRevenueCut` controls what percentage of fuel sales go to the owner (default 70%)
+
 ## File map
 
 - `shared/config.lua` - general settings and toggles
@@ -97,8 +115,13 @@ Station stock and fallback behaviour are configured in:
 - `shared/refineries.lua` - refinery layout and storage
 - `client/pumps.lua` - public pump and nozzle flow
 - `client/industrial.lua` - refinery / tanker hose flow
+- `client/contracts.lua` - contracts job board UI
+- `client/ownership.lua` - ownership dashboard and purchase UI
 - `server/stations.lua` - station pricing / stock logic
 - `server/refinery.lua` - refinery batch logic
+- `server/contracts.lua` - contract generation and management
+- `server/ownership.lua` - ownership backend and revenue tracking
+- `server/payments.lua` - money add/remove/check helpers
 - `server/persistence.lua` - DB persistence
 
 ## Admin commands
@@ -106,14 +129,14 @@ Station stock and fallback behaviour are configured in:
 - `/fuel_refill_station [stationId] [fuelType] [litres]`
 - `/fuel_toggle_stock`
 
+## Player commands
+
+- `/fuelcontracts` - open the fuel contracts job board
+- `/fuelproperties` - view your owned fuel properties
+
 ## Notes
 
-- The public nozzle prop is network-synced enough for other players to see it in-hand.
-- Rope visuals are still local and not fully multiplayer-perfect yet.
+- Nozzle and hose props are network-synced so other players can see them.
+- Rope visuals are now synced to nearby players for both public pumps and industrial hoses.
 - Fuel is stored internally in litres; native fuel level is just the visible gameplay representation.
-
-
-## v0.5.2 quick notes
-- Public pump carry prop changed to `prop_cs_fuel_hose`.
-- Added stronger nozzle cleanup so returning the nozzle detaches and deletes the local/remote prop more reliably.
-- Rope remains a GTA rope effect, not a swappable model prop.
+- Refinery processing has a ~12% loss (100L crude yields 88L of products) for economic realism.

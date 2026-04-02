@@ -7,6 +7,8 @@ local hoseState = {
     prop = nil,
     rope = nil,
 }
+local remoteHoses = {}
+local remoteHoseRopes = {}
 
 local function loadModel(model)
     if type(model) == 'string' then
@@ -70,6 +72,8 @@ local function clearHose()
     hoseState.refineryId = nil
     hoseState.anchorCoords = nil
     hoseState.hoseType = nil
+
+    TriggerServerEvent('hbs-fuel:server:syncHoseReturn')
 
     local anim = Config.NozzleCarryAnim
     if anim and anim.dict and anim.clip then
@@ -183,6 +187,7 @@ local function createHose(anchorCoords, hoseType, refineryId)
     end
 
     playCarryAnim(true)
+    TriggerServerEvent('hbs-fuel:server:syncHoseGrab', anchorCoords)
     HBSFuelNotify(Config.Notifications.IndustrialHoseGrabbed, 'inform')
     return true
 end
@@ -741,7 +746,96 @@ CreateThread(function()
     end
 end)
 
+RegisterNetEvent('hbs-fuel:client:syncHoseGrab', function(serverId, anchorCoords)
+    if GetPlayerServerId(PlayerId()) == serverId then return end
+
+    local player = GetPlayerFromServerId(serverId)
+    if player == -1 then return end
+
+    local ped = GetPlayerPed(player)
+    if not DoesEntityExist(ped) then return end
+
+    if remoteHoses[serverId] then
+        DeleteEntity(remoteHoses[serverId])
+        remoteHoses[serverId] = nil
+    end
+    if remoteHoseRopes[serverId] then
+        DeleteRope(remoteHoseRopes[serverId])
+        remoteHoseRopes[serverId] = nil
+    end
+
+    local nozzleCfg = Config.IndustrialNozzle
+    local model = loadModel(nozzleCfg.model)
+    if not model then return end
+
+    local obj = CreateObject(model, 0.0, 0.0, 0.0, true, true, false)
+    if not obj or obj == 0 then return end
+
+    SetEntityCollision(obj, false, false)
+    SetEntityAsMissionEntity(obj, true, true)
+
+    local attach = nozzleCfg.offset or {}
+    AttachEntityToEntity(
+        obj, ped,
+        GetPedBoneIndex(ped, nozzleCfg.bone or 57005),
+        attach.x or 0.13, attach.y or 0.03, attach.z or -0.02,
+        attach.rx or -85.0, attach.ry or 0.0, attach.rz or -20.0,
+        true, true, false, true, 1, true
+    )
+
+    remoteHoses[serverId] = obj
+
+    if anchorCoords and nozzleCfg.rope and nozzleCfg.rope.enabled then
+        local ropeCfg = nozzleCfg.rope
+        local anchorOff = ropeCfg.anchorOffset or { x = 0.0, y = 0.0, z = 1.15 }
+        local ax = anchorCoords.x + (anchorOff.x or 0.0)
+        local ay = anchorCoords.y + (anchorOff.y or 0.0)
+        local az = anchorCoords.z + (anchorOff.z or 1.15)
+
+        local rope = AddRope(
+            ax, ay, az, 0.0, 0.0, 0.0,
+            ropeCfg.length or 7.5, ropeCfg.type or 4,
+            ropeCfg.length or 7.5, ropeCfg.minLength or 0.25,
+            ropeCfg.lengthChangeRate or 0.0,
+            false, false, false,
+            ropeCfg.timeMultiplier or 1.0, ropeCfg.breakable or false
+        )
+
+        if rope and rope ~= 0 then
+            AttachEntitiesToRope(
+                rope, obj, obj,
+                ax, ay, az,
+                0.0, 0.0, 0.0,
+                ropeCfg.length or 7.5,
+                false, false, nil, nil
+            )
+            RopeForceLength(rope, ropeCfg.length or 7.5)
+            remoteHoseRopes[serverId] = rope
+        end
+    end
+end)
+
+RegisterNetEvent('hbs-fuel:client:syncHoseReturn', function(serverId)
+    if remoteHoseRopes[serverId] then
+        DeleteRope(remoteHoseRopes[serverId])
+        remoteHoseRopes[serverId] = nil
+    end
+    if remoteHoses[serverId] then
+        DeleteEntity(remoteHoses[serverId])
+        remoteHoses[serverId] = nil
+    end
+end)
+
 AddEventHandler('onResourceStop', function(resource)
     if resource ~= GetCurrentResourceName() then return end
     clearHose()
+
+    for serverId, obj in pairs(remoteHoses) do
+        DeleteEntity(obj)
+        remoteHoses[serverId] = nil
+    end
+    for serverId, rope in pairs(remoteHoseRopes) do
+        DeleteRope(rope)
+        remoteHoseRopes[serverId] = nil
+    end
 end)

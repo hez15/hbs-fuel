@@ -35,8 +35,8 @@ Config.LoadFuelOnVehicleEnter = true
 Config.SaveFuelEverySeconds = 30
 Config.RefuelTickMs = 250
 Config.RefuelProgressMsPerLitre = 450
-Config.PassiveDemandInterval = 900
-Config.PassiveDemandBaseLitres = 35.0
+Config.PassiveDemandInterval = 600     -- 10 minutes between demand ticks
+Config.PassiveDemandBaseLitres = 25.0  -- gentler drain to avoid constant refill contracts
 Config.AllowFuelWithoutStock = false
 Config.AllowUnmappedStations = true
 Config.UnmappedStationSupportedFuelTypes = { 'regular', 'diesel' }
@@ -228,33 +228,33 @@ Config.Features = {
 }
 
 Config.Usage = {
-    BaseDrainMultiplier = 1.0,
+    BaseDrainMultiplier = 0.85,      -- slightly reduced global drain for smoother economy
     EngineOnOnly = true,
     DrainByRPM = true,
-    IdleDrainPerSecond = 0.005,
+    IdleDrainPerSecond = 0.003,      -- reduced idle drain to not punish standing still
     ClassMultipliers = {
-        [0] = 0.90,
-        [1] = 1.00,
-        [2] = 1.10,
-        [3] = 1.05,
-        [4] = 1.25,
-        [5] = 1.15,
-        [6] = 1.30,
-        [7] = 1.60,
-        [8] = 0.55,
-        [9] = 1.10,
-        [10] = 1.25,
-        [11] = 1.15,
-        [12] = 1.05,
-        [13] = 0.0,
-        [14] = 0.0,
-        [15] = 2.80,
-        [16] = 3.50,
-        [17] = 2.00,
-        [18] = 1.40,
-        [19] = 1.60,
-        [20] = 1.20,
-        [21] = 0.0,
+        [0] = 0.85,   -- compacts: most efficient road vehicle
+        [1] = 0.95,   -- sedans: slightly below average
+        [2] = 1.10,   -- SUVs: heavier, more consumption
+        [3] = 1.00,   -- coupes: average
+        [4] = 1.20,   -- muscle: big engines, more fuel
+        [5] = 1.10,   -- sports classics: older, less efficient
+        [6] = 1.25,   -- sports: high performance
+        [7] = 1.50,   -- super: highest road drain
+        [8] = 0.45,   -- motorcycles: very efficient
+        [9] = 1.15,   -- off-road: moderate
+        [10] = 1.30,  -- industrial: heavy diesel
+        [11] = 1.10,  -- utility: moderate
+        [12] = 1.00,  -- vans: average
+        [13] = 0.0,   -- cycles: no fuel
+        [14] = 1.80,  -- boats: high consumption
+        [15] = 2.50,  -- helicopters: aviation drain
+        [16] = 3.00,  -- planes: highest drain
+        [17] = 1.80,  -- service: above average
+        [18] = 1.30,  -- emergency: moderate-high
+        [19] = 1.50,  -- military: heavy
+        [20] = 1.15,  -- commercial: efficient diesel
+        [21] = 0.0,   -- trains: no fuel
     }
 }
 
@@ -262,12 +262,12 @@ Config.RefineryRecipes = {
     crude_basic = {
         input = { crude = 100.0 },
         output = {
-            regular = 55.0,
-            diesel = 20.0,
-            jetfuel = 15.0,
-            motoroil = 10.0,
+            regular = 48.0,   -- ~5% processing loss for realism
+            diesel = 18.0,
+            jetfuel = 14.0,
+            motoroil = 8.0,   -- total output: 88L from 100L crude
         },
-        processTime = 300,
+        processTime = 240,    -- 4 minutes per batch
     }
 }
 
@@ -288,12 +288,12 @@ Config.Contracts = {
 
     Payout = {
         crude = {
-            base = 900,
-            perLitre = 0.20,
+            base = 750,         -- crude hauls are simpler runs
+            perLitre = 0.25,    -- incentivize full loads
         },
         refined = {
-            base = 1200,
-            perLitre = 0.35,
+            base = 1000,        -- refined delivery is more involved
+            perLitre = 0.40,    -- higher per-litre for precision delivery
         }
     }
 }
@@ -303,6 +303,21 @@ Config.Items = {
     JerryCanEmpty = 'jerry_can_empty',
     MotorOilBottle = 'motoroil_bottle',
     MotorOilDrum = 'motoroil_drum',
+}
+
+Config.Ownership = {
+    Enabled = true,
+    OwnerRevenueCut = 0.70,
+    MaxPriceMultiplier = 2.0,
+    MinPriceMultiplier = 0.5,
+    StationPrices = {
+        ltd_little_seoul = 150000,
+        ltd_davis = 120000,
+        airport_aviation = 250000,
+    },
+    RefineryPrices = {
+        cypress_refinery = 500000,
+    },
 }
 
 Config.Notifications = {
