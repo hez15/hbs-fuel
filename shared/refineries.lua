@@ -2,6 +2,7 @@ Refineries = {
     cypress_refinery = {
         label = 'Cypress Refinery',
         coords = vec3(1687.2, -1662.05, 110.44),
+        -- TODO: Set exact ped position in-game. Format: vec4(x, y, z, heading)
         pedCoords = vec4(1685.0, -1660.0, 110.44, 220.0),
         radius = 90.0,
         crude = {

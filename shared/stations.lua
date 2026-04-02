@@ -2,6 +2,8 @@ Stations = {
     ltd_little_seoul = {
         label = 'Little Seoul LTD',
         coords = vec3(-709.64, -905.17, 19.22),
+        -- TODO: Set exact ped position in-game. Format: vec4(x, y, z, heading)
+        -- Stand where you want the ped, run: /coords in chat or use vMenu to get your position.
         pedCoords = vec4(-708.18, -913.10, 19.22, 90.0),
         radius = 35.0,
         supports = { 'regular', 'diesel' },
@@ -19,6 +21,7 @@ Stations = {
     ltd_davis = {
         label = 'Davis LTD',
         coords = vec3(-48.72, -1761.03, 29.42),
+        -- TODO: Set exact ped position in-game. Format: vec4(x, y, z, heading)
         pedCoords = vec4(-46.50, -1758.80, 29.42, 50.0),
         radius = 35.0,
         supports = { 'regular', 'diesel' },
@@ -36,6 +39,7 @@ Stations = {
     airport_aviation = {
         label = 'LSIA Aviation Fuel',
         coords = vec3(-1027.34, -2735.23, 13.76),
+        -- TODO: Set exact ped position in-game. Format: vec4(x, y, z, heading)
         pedCoords = vec4(-1025.50, -2733.00, 13.76, 150.0),
         radius = 60.0,
         supports = { 'jetfuel' },
