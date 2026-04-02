@@ -20,6 +20,22 @@ lib.addCommand('fuel_refill_station', {
     TriggerClientEvent('ox_lib:notify', source, { title = 'Fuel', description = 'Station refilled.', type = 'success' })
 end)
 
+lib.addCommand('fuel_pedcoords', {
+    help = 'Print your current position as a vec4 for ped placement',
+    restricted = 'group.admin'
+}, function(source)
+    local ped = GetPlayerPed(source)
+    local coords = GetEntityCoords(ped)
+    local heading = GetEntityHeading(ped)
+    local formatted = ('vec4(%.2f, %.2f, %.2f, %.1f)'):format(coords.x, coords.y, coords.z, heading)
+    TriggerClientEvent('ox_lib:notify', source, {
+        title = 'Ped Coords',
+        description = formatted,
+        type = 'inform'
+    })
+    print(('[hbs-fuel] Ped coords for %s: %s'):format(GetPlayerName(source), formatted))
+end)
+
 lib.addCommand('fuel_toggle_stock', {
     help = 'Toggle station stock use',
     restricted = 'group.admin'
