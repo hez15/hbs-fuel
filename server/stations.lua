@@ -176,6 +176,11 @@ lib.callback.register('hbs-fuel:server:commitRefuelTick', function(source, stati
         return { ok = false, message = Config.Notifications.NotEnoughMoney }
     end
 
+    if stationId and AddOwnerRevenue then
+        local ownerCut = (Config.Ownership and Config.Ownership.OwnerRevenueCut or 0.70)
+        AddOwnerRevenue('station', stationId, HBSFuel.Round(totalPrice * ownerCut, 2))
+    end
+
     activeRefuels[source] = {
         stationId = stationId,
         fuelType = fuelType,

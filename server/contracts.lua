@@ -318,6 +318,8 @@ local function completeContractForSource(source, deliveredLitres)
             HBSFuelAddMoney(source, 'bank', payout, ('Fuel contract %s'):format(contract.id))
         end
 
+        TriggerClientEvent('hbs-fuel:client:contractCompleted', source, payout)
+
         return {
             ok = true,
             completed = true,
@@ -358,6 +360,32 @@ end)
 
 exports('CreateStationRefillContract', function(stationId, fuelType, litresNeeded, urgency)
     return createStationRefillContract(stationId, fuelType, litresNeeded, urgency)
+end)
+
+exports('CreateFuelContract', function(data)
+    if not data then return nil end
+
+    local contractType = data.type or 'refined'
+    local product = data.fuelType or data.product or 'regular'
+    local litres = tonumber(data.litres or data.litresRequired) or 0
+
+    if contractType == 'crude' then
+        product = 'crude'
+    end
+
+    if litres <= 0 then return nil end
+
+    return addContract({
+        type = contractType,
+        product = product,
+        pickupType = data.pickupType or (contractType == 'crude' and 'crude_source' or 'refinery'),
+        pickupId = data.pickupId or (contractType == 'crude' and 'default_crude_source' or 'default_refinery'),
+        dropoffType = data.dropoffType or (contractType == 'crude' and 'refinery' or 'station'),
+        dropoffId = data.dropoffId or data.stationId or 'default',
+        litresRequired = litres,
+        urgency = data.urgency or 'normal',
+        payout = data.payout,
+    })
 end)
 
 CreateThread(function()

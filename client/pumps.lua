@@ -22,6 +22,7 @@ local nozzleVisual = {
 }
 local lastUiText
 local remoteNozzles = {}
+local remoteRopes = {}
 
 local function hidePumpUi()
     if lastUiText then
@@ -512,13 +513,13 @@ local function grabNozzle(entity)
         return
     end
 
-    TriggerServerEvent('hbs-fuel:server:syncNozzleGrab')
+    TriggerServerEvent('hbs-fuel:server:syncNozzleGrab', nozzleState.pumpCoords)
 
     showPumpUi('Nozzle ready - target a vehicle to refuel or target the pump to return it')
     HBSFuelNotify(Config.Notifications.NozzleGrabbed, 'inform')
 end
 
-RegisterNetEvent('hbs-fuel:client:syncNozzleGrab', function(serverId)
+RegisterNetEvent('hbs-fuel:client:syncNozzleGrab', function(serverId, anchorCoords)
     if GetPlayerServerId(PlayerId()) == serverId then return end
 
     local player = GetPlayerFromServerId(serverId)
@@ -530,6 +531,11 @@ RegisterNetEvent('hbs-fuel:client:syncNozzleGrab', function(serverId)
     if remoteNozzles[serverId] then
         deletePropEntity(remoteNozzles[serverId])
         remoteNozzles[serverId] = nil
+    end
+
+    if remoteRopes[serverId] then
+        DeleteRope(remoteRopes[serverId])
+        remoteRopes[serverId] = nil
     end
 
     local model = loadModel((Config.Nozzles and Config.Nozzles.Vehicle and Config.Nozzles.Vehicle.model) or 'prop_cs_fuel_nozle')
@@ -560,9 +566,49 @@ RegisterNetEvent('hbs-fuel:client:syncNozzleGrab', function(serverId)
     )
 
     remoteNozzles[serverId] = obj
+
+    if anchorCoords then
+        local ropeCfg = Config.NozzleRope
+        if ropeCfg and ropeCfg.enabled ~= false then
+            local pumpOff = ropeCfg.pumpOffset or { x = 0.0, y = 0.0, z = 1.25 }
+            local ropeX = anchorCoords.x + (pumpOff.x or 0.0)
+            local ropeY = anchorCoords.y + (pumpOff.y or 0.0)
+            local ropeZ = anchorCoords.z + (pumpOff.z or 1.25)
+
+            local rope = AddRope(
+                ropeX, ropeY, ropeZ,
+                0.0, 0.0, 0.0,
+                ropeCfg.length or 4.8,
+                ropeCfg.type or 4,
+                ropeCfg.length or 4.8,
+                ropeCfg.minLength or 0.25,
+                ropeCfg.lengthChangeRate or 0.0,
+                false, false, false,
+                ropeCfg.timeMultiplier or 1.0,
+                ropeCfg.breakable or false
+            )
+
+            if rope and rope ~= 0 then
+                AttachEntitiesToRope(
+                    rope,
+                    obj, obj,
+                    ropeX, ropeY, ropeZ,
+                    0.0, 0.0, 0.0,
+                    ropeCfg.length or 4.8,
+                    false, false, nil, nil
+                )
+                RopeForceLength(rope, ropeCfg.length or 4.8)
+                remoteRopes[serverId] = rope
+            end
+        end
+    end
 end)
 
 RegisterNetEvent('hbs-fuel:client:syncNozzleReturn', function(serverId)
+    if remoteRopes[serverId] then
+        DeleteRope(remoteRopes[serverId])
+        remoteRopes[serverId] = nil
+    end
     if remoteNozzles[serverId] then
         deletePropEntity(remoteNozzles[serverId])
         remoteNozzles[serverId] = nil
@@ -676,6 +722,11 @@ AddEventHandler('onResourceStop', function(resource)
     for serverId, obj in pairs(remoteNozzles) do
         deletePropEntity(obj)
         remoteNozzles[serverId] = nil
+    end
+
+    for serverId, rope in pairs(remoteRopes) do
+        DeleteRope(rope)
+        remoteRopes[serverId] = nil
     end
 
     if Config.UseOxTarget then

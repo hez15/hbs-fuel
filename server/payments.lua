@@ -30,3 +30,11 @@ function HBSFuelRemoveMoney(source, amount, account, reason)
     local selected = (account == 'bank' and 'bank') or 'cash'
     return player.Functions.RemoveMoney(selected, amount, reason or 'fuel_purchase')
 end
+
+function HBSFuelAddMoney(source, account, amount, reason)
+    local player = getPlayer(source)
+    if not player then return false end
+
+    local selected = (account == 'bank' and 'bank') or 'cash'
+    return player.Functions.AddMoney(selected, amount, reason or 'fuel_income')
+end
