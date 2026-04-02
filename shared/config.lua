@@ -310,6 +310,7 @@ Config.Ownership = {
     OwnerRevenueCut = 0.70,
     MaxPriceMultiplier = 2.0,
     MinPriceMultiplier = 0.5,
+    PedModel = 's_m_y_autoshop_02',
     StationPrices = {
         ltd_little_seoul = 150000,
         ltd_davis = 120000,

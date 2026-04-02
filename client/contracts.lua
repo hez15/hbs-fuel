@@ -51,7 +51,7 @@ end
 
 local function formatTimeRemaining(expiresAt)
     if not expiresAt then return '' end
-    local remaining = expiresAt - os.time()
+    local remaining = expiresAt - GetCloudTimeAsInt()
     if remaining <= 0 then return '~r~Expired~s~' end
     local mins = math.floor(remaining / 60)
     local secs = remaining % 60

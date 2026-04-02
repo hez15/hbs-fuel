@@ -78,12 +78,21 @@ local function deletePropEntity(entity)
     if entity and DoesEntityExist(entity) then
         DetachEntity(entity, true, true)
         SetEntityAsMissionEntity(entity, true, true)
+        SetEntityAsNoLongerNeeded(entity)
+        Wait(0)
         DeleteObject(entity)
-        DeleteEntity(entity)
+        if DoesEntityExist(entity) then
+            DeleteEntity(entity)
+        end
     end
 end
 
 local function clearNozzleVisuals()
+    local ped = PlayerPedId()
+    StopAnimTask(ped, Config.NozzleCarryAnim.dict, Config.NozzleCarryAnim.clip, 1.0)
+    ClearPedSecondaryTask(ped)
+    ClearPedTasks(ped)
+
     if nozzleVisual.rope then
         DeleteRope(nozzleVisual.rope)
         nozzleVisual.rope = nil
@@ -97,10 +106,6 @@ local function clearNozzleVisuals()
         deletePropEntity(nozzleVisual.prop)
     end
     nozzleVisual.prop = nil
-
-    local ped = PlayerPedId()
-    StopAnimTask(ped, Config.NozzleCarryAnim.dict, Config.NozzleCarryAnim.clip, 1.0)
-    ClearPedSecondaryTask(ped)
 end
 
 local function playNozzleCarryAnim(force)
