@@ -282,6 +282,55 @@ lib.callback.register('hbs-fuel:server:purchaseEntity', function(source, entityT
     return { ok = true, message = 'Property purchased successfully.' }
 end)
 
+lib.callback.register('hbs-fuel:server:ownerOrderFuel', function(source, entityId, fuelType, litres, urgency)
+    if not IsEntityOwner(source, 'station', entityId) then
+        return { ok = false, message = 'You do not own this station.' }
+    end
+
+    litres = tonumber(litres) or 0
+    if litres <= 0 or litres > 12000 then
+        return { ok = false, message = 'Invalid amount (1-12000 litres).' }
+    end
+
+    if not FuelTypes[fuelType] then
+        return { ok = false, message = 'Invalid fuel type.' }
+    end
+
+    local station = StationState and StationState[entityId]
+    if not station then
+        return { ok = false, message = 'Station not found.' }
+    end
+
+    local contract = exports['hbs-fuel']:CreateStationRefillContract(entityId, fuelType, litres, urgency or 'normal')
+    if not contract then
+        return { ok = false, message = 'A similar order already exists for this station.' }
+    end
+
+    return { ok = true, message = ('Order placed: %.0fL of %s'):format(litres, fuelType), contractId = contract.id }
+end)
+
+lib.callback.register('hbs-fuel:server:getStationOrders', function(source, entityId)
+    if not IsEntityOwner(source, 'station', entityId) then
+        return { ok = false, orders = {} }
+    end
+
+    local contracts = exports['hbs-fuel']:GetContractsForStation(entityId) or {}
+    local orders = {}
+    for _, c in ipairs(contracts) do
+        orders[#orders + 1] = {
+            id = c.id,
+            product = c.product,
+            litresRequired = c.litresRequired,
+            litresDelivered = c.litresDelivered or 0,
+            urgency = c.urgency,
+            status = c.status,
+            payout = c.payout,
+        }
+    end
+
+    return { ok = true, orders = orders }
+end)
+
 CreateThread(function()
     Wait(2000)
     MySQL.query([[

@@ -99,6 +99,24 @@ function OpenOwnerDashboardNUI(entityType, entityId)
         return
     end
 
+    local orders = {}
+    local fuelTypes = {}
+    if entityType == 'station' then
+        local orderData = lib.callback.await('hbs-fuel:server:getStationOrders', false, entityId)
+        if orderData and orderData.ok then
+            orders = orderData.orders
+        end
+
+        local station = Stations[entityId]
+        if station and station.supports then
+            for _, ft in ipairs(station.supports) do
+                if FuelTypes[ft] and not FuelTypes[ft].byproduct then
+                    fuelTypes[#fuelTypes + 1] = ft
+                end
+            end
+        end
+    end
+
     SendNUIMessage({
         action = 'openOwnerDashboard',
         entityType = entityType,
@@ -111,6 +129,8 @@ function OpenOwnerDashboardNUI(entityType, entityId)
         minMult = Config.Ownership and Config.Ownership.MinPriceMultiplier or 0.5,
         maxMult = Config.Ownership and Config.Ownership.MaxPriceMultiplier or 2.0,
         stock = data.stock,
+        orders = orders,
+        fuelTypes = fuelTypes,
     })
     setNuiFocus(true)
 end
@@ -134,6 +154,18 @@ RegisterNUICallback('nuiWithdrawRevenue', function(data, cb)
         OpenOwnerDashboardNUI(data.entityType, data.entityId)
     else
         HBSFuelNotify(result and result.message or 'Withdrawal failed.', 'error')
+    end
+end)
+
+RegisterNUICallback('nuiOrderFuel', function(data, cb)
+    cb('ok')
+    local result = lib.callback.await('hbs-fuel:server:ownerOrderFuel', false, data.entityId, data.fuelType, tonumber(data.litres), data.urgency)
+    if result and result.ok then
+        HBSFuelNotify(result.message or 'Order placed!', 'success')
+        -- Refresh dashboard
+        OpenOwnerDashboardNUI('station', data.entityId)
+    else
+        HBSFuelNotify(result and result.message or 'Failed to place order.', 'error')
     end
 end)
 

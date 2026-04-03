@@ -358,6 +358,18 @@ exports('GetActiveContract', function(source)
     return getActiveContractForSource(source)
 end)
 
+exports('GetContractsForStation', function(stationId)
+    local results = {}
+    for _, contract in pairs(Contracts) do
+        if contract.dropoffType == 'station' and contract.dropoffId == stationId
+            and (contract.status == 'available' or contract.status == 'active')
+        then
+            results[#results + 1] = sanitizeContractForClient(contract)
+        end
+    end
+    return results
+end)
+
 exports('CreateStationRefillContract', function(stationId, fuelType, litresNeeded, urgency)
     return createStationRefillContract(stationId, fuelType, litresNeeded, urgency)
 end)
