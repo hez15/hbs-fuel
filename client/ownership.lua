@@ -22,17 +22,28 @@ local function spawnShopPed()
         return
     end
 
-    local model = cfg.PedModel or 's_m_y_autoshop_02'
-    local hash = type(model) == 'string' and GetHashKey(model) or model
+    local model = cfg.PedModel or 'mp_m_shopkeep_01'
+    local hash
+
+    if type(model) == 'number' then
+        hash = model
+    else
+        hash = GetHashKey(model)
+    end
+
+    if not IsModelValid(hash) then
+        print(('[hbs-fuel] Invalid ped model: %s (hash: %s) — falling back to mp_m_shopkeep_01'):format(tostring(model), tostring(hash)))
+        hash = GetHashKey('mp_m_shopkeep_01')
+    end
 
     RequestModel(hash)
     local timeout = 0
-    while not HasModelLoaded(hash) and timeout < 5000 do
-        Wait(10)
-        timeout = timeout + 10
+    while not HasModelLoaded(hash) and timeout < 10000 do
+        Wait(50)
+        timeout = timeout + 50
     end
     if not HasModelLoaded(hash) then
-        print('[hbs-fuel] Failed to load ownership ped model: ' .. tostring(model))
+        print(('[hbs-fuel] Failed to load ped model after %dms (hash: %s)'):format(timeout, tostring(hash)))
         return
     end
 
