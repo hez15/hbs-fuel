@@ -310,7 +310,7 @@ Config.Ownership = {
     OwnerRevenueCut = 0.70,
     MaxPriceMultiplier = 2.0,
     MinPriceMultiplier = 0.5,
-    PedModel = 's_m_y_autoshop_02',
+    PedModel = 's_m_y_mechanic_02',
     -- TODO: Set exact ped position in-game. Use /fuel_pedcoords to get your vec4.
     PedCoords = vec4(198.34, -936.28, 29.69, 143.82),
     PedBlipSprite = 374,
