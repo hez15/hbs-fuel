@@ -311,6 +311,10 @@ Config.Ownership = {
     MaxPriceMultiplier = 2.0,
     MinPriceMultiplier = 0.5,
     PedModel = 's_m_y_autoshop_02',
+    -- TODO: Set exact ped position in-game. Use /fuel_pedcoords to get your vec4.
+    PedCoords = vec4(0.0, 0.0, 0.0, 0.0),
+    PedBlipSprite = 374,
+    PedBlipColour = 46,
     StationPrices = {
         ltd_little_seoul = 150000,
         ltd_davis = 120000,
