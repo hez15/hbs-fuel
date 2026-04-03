@@ -23,7 +23,7 @@ local function spawnShopPed()
     end
 
     local model = cfg.PedModel or 's_m_y_autoshop_02'
-    local hash = type(model) == 'string' and joaat(model) or model
+    local hash = type(model) == 'string' and GetHashKey(model) or model
 
     RequestModel(hash)
     local timeout = 0
@@ -32,16 +32,17 @@ local function spawnShopPed()
         timeout = timeout + 10
     end
     if not HasModelLoaded(hash) then
-        print('[hbs-fuel] Failed to load ownership ped model.')
+        print('[hbs-fuel] Failed to load ownership ped model: ' .. tostring(model))
         return
     end
 
-    shopPed = CreatePed(0, hash, pedPos.x, pedPos.y, pedPos.z - 1.0, pedPos.w or 0.0, false, true)
+    shopPed = CreatePed(0, hash, pedPos.x, pedPos.y, pedPos.z, pedPos.w or 0.0, false, true)
     if not shopPed or shopPed == 0 then
-        print('[hbs-fuel] Failed to create ownership ped.')
+        print('[hbs-fuel] Failed to create ownership ped at ' .. tostring(pedPos))
         return
     end
 
+    SetPedFleeAttributes(shopPed, 0, false)
     FreezeEntityPosition(shopPed, true)
     SetEntityInvincible(shopPed, true)
     SetBlockingOfNonTemporaryEvents(shopPed, true)
@@ -49,6 +50,7 @@ local function spawnShopPed()
     SetPedCanPlayAmbientAnims(shopPed, true)
     SetPedCanRagdollFromPlayerImpact(shopPed, false)
     SetEntityAsMissionEntity(shopPed, true, true)
+    PlaceObjectOnGroundProperly(shopPed)
     SetModelAsNoLongerNeeded(hash)
 
     exports['ox_target']:addLocalEntity(shopPed, {
