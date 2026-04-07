@@ -265,6 +265,28 @@ local function getVehiclePlate(vehicle)
     return HBSFuelNormalizePlate(GetVehicleNumberPlateText(vehicle))
 end
 
+local function handleBottleOil(refineryId, size)
+    local cfg = Config.MotorOil or {}
+    local duration = size == 'drum' and (cfg.DrumTimeSeconds or 12) or (cfg.BottleTimeSeconds or 5)
+
+    local ped = PlayerPedId()
+    TaskStartScenarioInPlace(ped, 'WORLD_HUMAN_WELDING', 0, true)
+
+    local ok = lib.progressCircle({
+        duration = duration * 1000,
+        label = size == 'drum' and 'Filling motor oil drum...' or 'Filling motor oil bottle...',
+        canCancel = true,
+        disable = { car = true, move = true, combat = true }
+    })
+
+    ClearPedTasks(ped)
+
+    if not ok then return end
+
+    local result = lib.callback.await('hbs-fuel:server:bottleMotorOil', false, refineryId, size)
+    HBSFuelNotify(result and result.message or 'Failed to bottle motor oil.', result and result.ok and 'success' or 'error')
+end
+
 local function showStock(refineryId)
     OpenRefineryStockNUI(refineryId)
 end
@@ -415,7 +437,7 @@ local function handleLoadRefined(refineryId, point)
 
     local options = {}
     for fuelType, stock in pairs(refinery.products or {}) do
-        if fuelType ~= 'motoroil' and fuelType ~= 'crude' and (stock.current or 0.0) > 0.0 then
+        if fuelType ~= 'crude' and (stock.current or 0.0) > 0.0 then
             local fuel = FuelTypes[fuelType]
             options[#options + 1] = {
                 label = fuel and fuel.label or fuelType,
@@ -522,6 +544,62 @@ local function handleUnloadStation(stationId, point)
         TriggerServerEvent('hbs-fuel:server:contracts:progressRefined', result.fuelType, result.litres, stationId)
     end
     HBSFuelNotify(result and result.message or 'Unable to unload tanker.', result and result.ok and 'success' or 'error')
+end
+
+local function handleUnloadOilShop(shopId, point)
+    if not hoseState.active then
+        if not createHose(point, 'oil_unload', nil) then return end
+        return
+    end
+
+    if hoseState.hoseType ~= 'oil_unload' then
+        HBSFuelNotify('Return the current hose first.', 'error')
+        return
+    end
+
+    local tanker, _, _, modelName, foundAnyTanker = getNearbySupportedTanker(point, 'refined')
+    if not tanker then
+        notifyNoTanker('refined', foundAnyTanker)
+        return
+    end
+
+    local load = exports['hbs-fuel']:GetTankerVehicleLoad(tanker)
+    if not load or load.fuelType ~= 'motoroil' or (load.litres or 0) <= 0 then
+        HBSFuelNotify('Tanker does not contain motor oil.', 'error')
+        return
+    end
+
+    local input = lib.inputDialog('Unload Motor Oil', {
+        {
+            type = 'number',
+            label = 'Litres',
+            default = load.litres,
+            min = 10.0,
+            max = load.litres,
+            step = 10.0,
+            required = true
+        },
+    })
+
+    if not input then return end
+
+    local litres = tonumber(input[1]) or 0.0
+    if litres <= 0.0 then return end
+
+    local ok = lib.progressCircle({
+        duration = Config.Tanker.FuelUnloadStepSeconds * 1000,
+        label = 'Unloading motor oil...',
+        canCancel = true,
+        disable = { car = true, move = false, combat = true }
+    })
+
+    if not ok then return end
+
+    local result = lib.callback.await('hbs-fuel:server:unloadOilToShop', false, shopId, getVehiclePlate(tanker), litres, modelName)
+    if result and result.ok then
+        TriggerServerEvent('hbs-fuel:server:contracts:progressRefined', 'motoroil', result.litres, shopId)
+    end
+    HBSFuelNotify(result and result.message or 'Unable to unload oil.', result and result.ok and 'success' or 'error')
 end
 
 local function registerRefineryTargets()
@@ -679,6 +757,66 @@ local function registerRefineryTargets()
                 }
             })
         end
+
+        if points.oilBottling and Config.Features.MotorOil then
+            exports.ox_target:addSphereZone({
+                coords = points.oilBottling,
+                radius = 3.0,
+                debug = Config.Debug,
+                options = {
+                    {
+                        name = ('hbs_fuel_oil_bottle_%s'):format(refineryId),
+                        icon = 'fa-solid fa-bottle-droplet',
+                        label = 'Fill Motor Oil Bottle',
+                        onSelect = function()
+                            handleBottleOil(refineryId, 'bottle')
+                        end
+                    },
+                    {
+                        name = ('hbs_fuel_oil_drum_%s'):format(refineryId),
+                        icon = 'fa-solid fa-oil-can',
+                        label = 'Fill Motor Oil Drum',
+                        onSelect = function()
+                            handleBottleOil(refineryId, 'drum')
+                        end
+                    },
+                }
+            })
+        end
+    end
+end
+
+local function registerOilShopTargets()
+    for shopId, shop in pairs(Config.OilShops or {}) do
+        for index, coords in ipairs(shop.unloadPoints or {}) do
+            exports.ox_target:addSphereZone({
+                coords = coords,
+                radius = 4.0,
+                debug = Config.Debug,
+                options = {
+                    {
+                        name = ('hbs_fuel_oilshop_unload_%s_%s'):format(shopId, index),
+                        icon = 'fa-solid fa-truck-droplet',
+                        label = 'Grab / Use Oil Hose',
+                        onSelect = function()
+                            handleUnloadOilShop(shopId, coords)
+                        end
+                    },
+                    {
+                        name = ('hbs_fuel_oilshop_return_%s_%s'):format(shopId, index),
+                        icon = 'fa-solid fa-rotate-left',
+                        label = 'Return Hose',
+                        canInteract = function()
+                            return hoseState.active and hoseState.hoseType == 'oil_unload'
+                        end,
+                        onSelect = function()
+                            clearHose()
+                            HBSFuelNotify(Config.Notifications.IndustrialHoseReturned, 'success')
+                        end
+                    },
+                }
+            })
+        end
     end
 end
 
@@ -722,6 +860,7 @@ CreateThread(function()
     if not Config.UseOxTarget then return end
     registerRefineryTargets()
     registerStationTargets()
+    registerOilShopTargets()
 end)
 
 CreateThread(function()

@@ -304,11 +304,13 @@ Config.Contracts = {
             label = 'Fuel Dispatch',
             coords = vec4(1684.5, -1665.0, 110.44, 215.0),
             model = 's_m_y_dockwork_01',
+            spawnPoint = vec4(1680.0, -1660.0, 110.44, 215.0),
         },
         {
             label = 'Fuel Dispatch',
             coords = vec4(-714.0, -909.0, 19.22, 90.0),
             model = 's_m_y_dockwork_01',
+            spawnPoint = vec4(-718.0, -912.0, 19.22, 90.0),
         },
     },
 }
@@ -336,6 +338,46 @@ Config.Ownership = {
         airport_aviation = 250000,
     },
     RefineryPrices = {},
+}
+
+Config.MotorOil = {
+    BottleLitres = 2.0,
+    DrumLitres = 20.0,
+    BottleTimeSeconds = 5,
+    DrumTimeSeconds = 12,
+}
+
+Config.OilShops = {
+    bennys_burton = {
+        label = "Benny's Original Motorworks",
+        coords = vec3(-205.0, -1312.0, 31.0),
+        unloadPoints = { vec3(-213.0, -1320.0, 31.0) },
+        tank = { current = 50.0, max = 500.0 },
+    },
+    lsc_burton = {
+        label = 'Los Santos Customs',
+        coords = vec3(-337.0, -137.0, 39.0),
+        unloadPoints = { vec3(-330.0, -140.0, 39.0) },
+        tank = { current = 30.0, max = 400.0 },
+    },
+}
+
+Config.JobVehicles = {
+    crude = { truck = 'hauler', trailer = 'tanker2' },
+    refined = { truck = 'hauler', trailer = 'tanker' },
+}
+
+Config.Crime = {
+    Enabled = true,
+    SiphonEnabled = true,
+    SiphonTimeSeconds = 30,
+    SiphonLitresPerCan = 10.0,
+    PoliceAlert = true,
+    DispatchEvent = nil,
+    BlackMarketDropoffs = {
+        { label = 'Docks Buyer', coords = vec3(1250.0, -3200.0, 5.5), radius = 4.0 },
+    },
+    BlackMarketPayPerLitre = 0.30,
 }
 
 Config.Notifications = {

@@ -36,7 +36,8 @@ client_scripts {
     'client/industrial.lua',
     'client/contracts.lua',
     'client/ownership.lua',
-    'client/zones.lua'
+    'client/zones.lua',
+    'client/crime.lua'
 }
 
 server_scripts {
@@ -50,6 +51,8 @@ server_scripts {
     'server/tanker.lua',
     'server/contracts.lua',
     'server/ownership.lua',
+    'server/oilshops.lua',
+    'server/crime.lua',
     'server/admin.lua'
 }
 

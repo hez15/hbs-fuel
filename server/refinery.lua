@@ -175,8 +175,8 @@ lib.callback.register('hbs-fuel:server:loadRefinedProduct', function(source, ref
         return { ok = false, message = Config.Notifications.TankerWrongRoleRefined }
     end
 
-    if fuelType == 'motoroil' or fuelType == 'crude' then
-        return { ok = false, message = 'That product is not loaded into a road tanker here.' }
+    if fuelType == 'crude' then
+        return { ok = false, message = 'Crude is not loaded into a road tanker here.' }
     end
 
     local product = refinery.products[fuelType]
@@ -210,4 +210,32 @@ lib.callback.register('hbs-fuel:server:loadRefinedProduct', function(source, ref
         tankerLitres = currentLitres + moved,
         message = Config.Notifications.TankerLoaded
     }
+end)
+
+lib.callback.register('hbs-fuel:server:bottleMotorOil', function(source, refineryId, size)
+    local refinery = getRefinery(refineryId)
+    if not refinery then
+        return { ok = false, message = 'Refinery not found.' }
+    end
+
+    local cfg = Config.MotorOil or {}
+    local litres = size == 'drum' and (cfg.DrumLitres or 20.0) or (cfg.BottleLitres or 2.0)
+    local itemName = size == 'drum' and Config.Items.MotorOilDrum or Config.Items.MotorOilBottle
+
+    local product = refinery.products and refinery.products.motoroil
+    if not product or product.current < litres then
+        return { ok = false, message = 'Not enough motor oil in stock.' }
+    end
+
+    local canCarry = exports.ox_inventory:CanCarryItem(source, itemName, 1)
+    if not canCarry then
+        return { ok = false, message = 'Your inventory is full.' }
+    end
+
+    product.current = product.current - litres
+    SaveRefineryState(refineryId)
+
+    exports.ox_inventory:AddItem(source, itemName, 1, { litres = litres })
+
+    return { ok = true, message = ('Filled %s (%.0fL).'):format(size == 'drum' and 'drum' or 'bottle', litres) }
 end)
