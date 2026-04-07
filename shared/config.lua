@@ -334,9 +334,7 @@ Config.Ownership = {
         ltd_davis = 120000,
         airport_aviation = 250000,
     },
-    RefineryPrices = {
-        cypress_refinery = 500000,
-    },
+    RefineryPrices = {},
 }
 
 Config.Notifications = {
