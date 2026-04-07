@@ -176,14 +176,6 @@ lib.callback.register('hbs-fuel:server:unloadCrudeToRefinery', function(source, 
         tonumber(load.max_litres) or Config.Tanker.DefaultMaxLitres
     )
 
-    TriggerClientEvent('ox_lib:notify', source, {
-        title = 'Fuel',
-        description = ('Delivered %.2fL crude.'):format(moved),
-        type = 'success'
-    })
-
-    TriggerClientEvent('hbs-fuel:client:contractDeliveredCrude', source, moved)
-
     return {
         ok = true,
         litres = moved,
