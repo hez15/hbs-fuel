@@ -373,7 +373,8 @@ Config.Crime = {
     SiphonTimeSeconds = 30,
     SiphonLitresPerCan = 10.0,
     PoliceAlert = true,
-    DispatchEvent = nil,
+    Dispatch = 'ps-dispatch',    -- 'ps-dispatch' or 'custom'
+    DispatchEvent = nil,         -- only used when Dispatch = 'custom'
     BlackMarketDropoffs = {
         { label = 'Docks Buyer', coords = vec3(1250.0, -3200.0, 5.5), radius = 4.0 },
     },

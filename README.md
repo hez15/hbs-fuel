@@ -56,16 +56,25 @@ hbs-fuel uses two ACE permissions to gate sensitive features:
 add_ace group.admin hbs-fuel.admin allow
 ```
 
-### `hbs-fuel.police`
-**What it does:** Players with this permission receive dispatch alerts when someone siphons fuel from a tanker or sells stolen fuel at a black market drop-off.
+### Police Dispatch (ps-dispatch)
 
-**Why it's needed:** The crime system needs a way to notify law enforcement without broadcasting to all players. Only players in your police role should see these alerts. If you use a custom MDT/dispatch system, set `Config.Crime.DispatchEvent` to your event name instead.
+Crime alerts (fuel siphoning, black market sales) integrate with **ps-dispatch** out of the box. When a crime occurs, a `CustomAlert` is sent with:
+- Dispatch code (`10-90` for fuel theft, `10-31` for suspicious sale)
+- Blip on the officer's map at the crime location
+- Description of the suspect's activity
 
-```cfg
-add_ace group.police hbs-fuel.police allow
+**Config:**
+```lua
+Config.Crime.Dispatch = 'ps-dispatch'  -- uses exports['ps-dispatch']:CustomAlert()
 ```
 
-If you don't use ACE groups, you can also assign directly:
+If you use a different dispatch system, set:
+```lua
+Config.Crime.Dispatch = 'custom'
+Config.Crime.DispatchEvent = 'your-dispatch:event'  -- fires TriggerEvent with (crimeType, coords)
+```
+
+If you don't use ACE groups, you can assign directly:
 ```cfg
 add_principal identifier.license:abc123 group.admin
 ```

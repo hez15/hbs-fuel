@@ -1,5 +1,53 @@
 if not Config.Crime or not Config.Crime.Enabled then return end
 
+-- ── DISPATCH ──
+
+local function dispatchAlert(crimeType, coords)
+    local dispatch = Config.Crime.Dispatch or 'ps-dispatch'
+
+    if dispatch == 'ps-dispatch' then
+        local alertData = {
+            coords = coords,
+            gender = IsPedMale(PlayerPedId()) and 'male' or 'female',
+        }
+        if crimeType == 'siphon' then
+            exports['ps-dispatch']:CustomAlert({
+                coords = coords,
+                message = 'Fuel Theft in Progress',
+                dispatchCode = '10-90',
+                description = 'Suspect siphoning fuel from a tanker vehicle',
+                radius = 0,
+                sprite = 477,
+                color = 1,
+                scale = 1.0,
+                length = 3,
+                sound = 'Lose_1st',
+                sound2 = 'GTAO_FM_Events_Soundset',
+            })
+        elseif crimeType == 'blackmarket' then
+            exports['ps-dispatch']:CustomAlert({
+                coords = coords,
+                message = 'Suspicious Fuel Sale',
+                dispatchCode = '10-31',
+                description = 'Suspect selling stolen fuel at an illegal drop-off',
+                radius = 0,
+                sprite = 477,
+                color = 1,
+                scale = 1.0,
+                length = 3,
+                sound = 'Lose_1st',
+                sound2 = 'GTAO_FM_Events_Soundset',
+            })
+        end
+    elseif dispatch == 'custom' and Config.Crime.DispatchEvent then
+        TriggerEvent(Config.Crime.DispatchEvent, crimeType, coords)
+    end
+end
+
+RegisterNetEvent('hbs-fuel:client:crimeAlert', function(crimeType, coords)
+    dispatchAlert(crimeType, coords)
+end)
+
 -- ── SIPHON FUEL FROM TANKERS ──
 
 local function isTankerVehicle(vehicle)
@@ -40,8 +88,7 @@ local function handleSiphonTanker(vehicle)
     TriggerServerEvent('hbs-fuel:server:siphonTanker', plate, litresPerCan)
 
     if Config.Crime.PoliceAlert then
-        local coords = GetEntityCoords(ped)
-        TriggerServerEvent('hbs-fuel:server:crimeAlert', 'siphon', coords)
+        dispatchAlert('siphon', GetEntityCoords(PlayerPedId()))
     end
 end
 
@@ -73,9 +120,8 @@ local function handleBlackMarketSell(dropoffIndex, point)
     local result = lib.callback.await('hbs-fuel:server:blackMarketSell', false, plate)
     HBSFuelNotify(result and result.message or 'Sale failed.', result and result.ok and 'success' or 'error')
 
-    if Config.Crime.PoliceAlert then
-        local coords = GetEntityCoords(PlayerPedId())
-        TriggerServerEvent('hbs-fuel:server:crimeAlert', 'blackmarket', coords)
+    if Config.Crime.PoliceAlert and result and result.ok then
+        dispatchAlert('blackmarket', GetEntityCoords(PlayerPedId()))
     end
 end
 

@@ -60,21 +60,7 @@ end)
 
 RegisterNetEvent('hbs-fuel:server:crimeAlert', function(crimeType, coords)
     if not Config.Crime.PoliceAlert then return end
+    local src = source
 
-    local dispatchEvent = Config.Crime.DispatchEvent
-    if dispatchEvent then
-        TriggerEvent(dispatchEvent, crimeType, coords, source)
-    else
-        local label = crimeType == 'siphon' and 'Fuel Theft in Progress' or 'Suspicious Fuel Sale'
-        for _, playerId in ipairs(GetPlayers()) do
-            playerId = tonumber(playerId)
-            if IsPlayerAceAllowed(playerId, 'hbs-fuel.police') then
-                TriggerClientEvent('ox_lib:notify', playerId, {
-                    title = 'Police Dispatch',
-                    description = label,
-                    type = 'error'
-                })
-            end
-        end
-    end
+    TriggerClientEvent('hbs-fuel:client:crimeAlert', src, crimeType, coords)
 end)
