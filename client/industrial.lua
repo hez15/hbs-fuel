@@ -376,6 +376,9 @@ local function handleUnloadCrude(refineryId, point)
     if not ok then return end
 
     local result = lib.callback.await('hbs-fuel:server:unloadCrudeToRefinery', false, refineryId, getVehiclePlate(tanker), litres)
+    if result and result.ok then
+        TriggerServerEvent('hbs-fuel:server:contracts:progressCrude', result.litres)
+    end
     HBSFuelNotify(result and result.message or 'Unable to unload crude.', result and result.ok and 'success' or 'error')
 end
 
@@ -525,6 +528,9 @@ local function handleUnloadStation(stationId, point)
     if not ok then return end
 
     local result = lib.callback.await('hbs-fuel:server:unloadTankerToStation', false, stationId, getVehiclePlate(tanker), litres, modelName)
+    if result and result.ok then
+        TriggerServerEvent('hbs-fuel:server:contracts:progressRefined', result.fuelType, result.litres, stationId)
+    end
     HBSFuelNotify(result and result.message or 'Unable to unload tanker.', result and result.ok and 'success' or 'error')
 end
 

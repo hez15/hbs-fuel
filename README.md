@@ -1,4 +1,4 @@
-# hbs-fuel v0.6.0
+# hbs-fuel v0.6.1
 
 QBX + ox_inventory fuel system with:
 

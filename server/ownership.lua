@@ -51,6 +51,7 @@ local function saveOwnership(data)
             purchase_price = VALUES(purchase_price),
             revenue_total = VALUES(revenue_total),
             revenue_withdrawn = VALUES(revenue_withdrawn),
+            purchased_at = purchased_at,
             updated_at = NOW()
     ]], {
         data.entityType,

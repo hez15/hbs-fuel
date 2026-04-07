@@ -210,6 +210,7 @@ function openOwnerPanel(data) {
     ownerState.entityType = data.entityType;
     ownerState.entityId = data.entityId;
     ownerState.priceMultiplier = data.priceMultiplier || 1.0;
+    window._payoutConfig = data.payoutConfig || null;
 
     document.getElementById('owner-station-name').textContent = data.label || 'Station Dashboard';
     document.getElementById('dash-revenue-available').textContent = Math.floor(data.revenueAvailable || 0);
@@ -251,6 +252,9 @@ function openOwnerPanel(data) {
             </div>`;
     }
 
+    renderOrders(data.orders || []);
+    renderOrderForm(data.fuelTypes || []);
+
     showPanel('owner-panel');
 }
 
@@ -283,6 +287,102 @@ function withdrawRevenue() {
         body: JSON.stringify({
             entityType: ownerState.entityType,
             entityId: ownerState.entityId,
+        }),
+    });
+}
+
+// ── OWNER ORDERS ──
+let orderState = {
+    selectedFuel: null,
+    selectedUrgency: 'normal',
+};
+
+function renderOrders(orders) {
+    const container = document.getElementById('owner-orders-list');
+    if (!orders || orders.length === 0) {
+        container.innerHTML = '<div style="font-size:12px;color:#555;padding:8px 0;">No active orders.</div>';
+        return;
+    }
+    container.innerHTML = '';
+    orders.forEach(o => {
+        const pct = o.litresRequired > 0 ? Math.round((o.litresDelivered / o.litresRequired) * 100) : 0;
+        container.innerHTML += `
+            <div class="order-card">
+                <div class="order-card-header">
+                    <span class="order-card-title">${capitalize(o.product)} — ${(o.litresRequired || 0).toFixed(0)}L</span>
+                    <span class="order-status ${o.status}">${o.status}</span>
+                </div>
+                <div class="order-card-details">
+                    <span>Delivered: ${(o.litresDelivered || 0).toFixed(0)}L (${pct}%)</span>
+                    <span>Payout: $${o.payout || 0}</span>
+                </div>
+                <div class="order-progress">
+                    <div class="stock-bar-track"><div class="stock-bar-fill ${pct > 60 ? 'high' : pct > 30 ? 'mid' : 'low'}" style="width:${pct}%"></div></div>
+                </div>
+            </div>`;
+    });
+}
+
+function renderOrderForm(fuelTypes) {
+    const container = document.getElementById('order-fuel-options');
+    container.innerHTML = '';
+    const types = fuelTypes || [];
+    types.forEach((ft, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn' + (i === 0 ? ' selected' : '');
+        btn.textContent = ft;
+        btn.dataset.fuel = ft;
+        btn.onclick = () => selectOrderFuel(ft);
+        container.appendChild(btn);
+    });
+    if (types.length > 0) {
+        orderState.selectedFuel = types[0];
+    }
+    updateOrderSlider();
+}
+
+function selectOrderFuel(fuelType) {
+    orderState.selectedFuel = fuelType;
+    document.querySelectorAll('#order-fuel-options .option-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.fuel === fuelType);
+    });
+}
+
+function selectUrgency(urgency) {
+    orderState.selectedUrgency = urgency;
+    document.querySelectorAll('[data-urgency]').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.urgency === urgency);
+    });
+    updateOrderSlider();
+}
+
+function updateOrderSlider() {
+    const val = document.getElementById('order-litres-slider').value;
+    document.getElementById('order-litres-value').textContent = val + ' L';
+
+    const cfg = window._payoutConfig;
+    if (cfg && cfg.rates) {
+        const rates = cfg.rates.refined || { base: 1000, perLitre: 0.40 };
+        const urgencyBtns = document.querySelectorAll('[data-urgency].selected');
+        const urgency = urgencyBtns.length > 0 ? urgencyBtns[0].dataset.urgency : 'normal';
+        const mult = (cfg.urgencyMultipliers && cfg.urgencyMultipliers[urgency]) || 1.0;
+        const cost = Math.floor((rates.base + rates.perLitre * val) * mult);
+        const el = document.getElementById('order-cost-estimate');
+        if (el) el.textContent = '$' + cost.toLocaleString();
+    }
+}
+
+function submitFuelOrder() {
+    const litres = parseInt(document.getElementById('order-litres-slider').value) || 0;
+    if (!orderState.selectedFuel || litres <= 0) return;
+
+    fetch('https://hbs-fuel/nuiOrderFuel', {
+        method: 'POST',
+        body: JSON.stringify({
+            entityId: ownerState.entityId,
+            fuelType: orderState.selectedFuel,
+            litres: litres,
+            urgency: orderState.selectedUrgency,
         }),
     });
 }
