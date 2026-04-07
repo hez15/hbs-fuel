@@ -70,8 +70,11 @@ lib.callback.register('hbs-fuel:server:getRefineryData', function(_, refineryId)
 end)
 
 lib.callback.register('hbs-fuel:server:openRefineryValve', function(source, refineryId)
-    if Config.Ownership and Config.Ownership.Enabled and not IsEntityOwner(source, 'refinery', refineryId) then
-        return { ok = false, message = 'You do not own this refinery.' }
+    if Config.Ownership and Config.Ownership.Enabled then
+        local ownership = GetOwnership('refinery', refineryId)
+        if ownership and ownership.ownerIdentifier and not IsEntityOwner(source, 'refinery', refineryId) then
+            return { ok = false, message = 'You do not own this refinery.' }
+        end
     end
 
     local refinery = getRefinery(refineryId)
@@ -84,8 +87,11 @@ lib.callback.register('hbs-fuel:server:openRefineryValve', function(source, refi
 end)
 
 lib.callback.register('hbs-fuel:server:startRefineryBatch', function(source, refineryId)
-    if Config.Ownership and Config.Ownership.Enabled and not IsEntityOwner(source, 'refinery', refineryId) then
-        return { ok = false, message = 'You do not own this refinery.' }
+    if Config.Ownership and Config.Ownership.Enabled then
+        local ownership = GetOwnership('refinery', refineryId)
+        if ownership and ownership.ownerIdentifier and not IsEntityOwner(source, 'refinery', refineryId) then
+            return { ok = false, message = 'You do not own this refinery.' }
+        end
     end
 
     local valveExpiry = refineryValveState[refineryId] or 0
@@ -135,8 +141,11 @@ lib.callback.register('hbs-fuel:server:loadCrudeTanker', function(_, plate, litr
 end)
 
 lib.callback.register('hbs-fuel:server:unloadCrudeToRefinery', function(source, refineryId, plate, litres)
-    if Config.Ownership and Config.Ownership.Enabled and not IsEntityOwner(source, 'refinery', refineryId) then
-        return { ok = false, message = 'You do not own this refinery.' }
+    if Config.Ownership and Config.Ownership.Enabled then
+        local ownership = GetOwnership('refinery', refineryId)
+        if ownership and ownership.ownerIdentifier and not IsEntityOwner(source, 'refinery', refineryId) then
+            return { ok = false, message = 'You do not own this refinery.' }
+        end
     end
 
     litres = tonumber(litres) or 0.0
@@ -184,8 +193,11 @@ lib.callback.register('hbs-fuel:server:unloadCrudeToRefinery', function(source, 
 end)
 
 lib.callback.register('hbs-fuel:server:loadRefinedProduct', function(source, refineryId, plate, fuelType, litres, modelName)
-    if Config.Ownership and Config.Ownership.Enabled and not IsEntityOwner(source, 'refinery', refineryId) then
-        return { ok = false, message = 'You do not own this refinery.' }
+    if Config.Ownership and Config.Ownership.Enabled then
+        local ownership = GetOwnership('refinery', refineryId)
+        if ownership and ownership.ownerIdentifier and not IsEntityOwner(source, 'refinery', refineryId) then
+            return { ok = false, message = 'You do not own this refinery.' }
+        end
     end
 
     litres = tonumber(litres) or 0.0
