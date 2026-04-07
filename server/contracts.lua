@@ -234,6 +234,23 @@ local function createStationRefillContract(stationId, fuelType, litresNeeded, ur
     })
 end
 
+local function ensureStationContracts()
+    local cfg = getCfg()
+    if cfg.Enabled == false then return end
+
+    local threshold = cfg.AutoRefillThreshold or 0.10
+
+    for stationId, station in pairs(StationState or {}) do
+        for fuelType, tank in pairs(station.tanks or {}) do
+            if tank.max > 0 and (tank.current / tank.max) < threshold then
+                local litresNeeded = math.floor(tank.max * 0.75)
+                local urgency = (tank.current / tank.max) < 0.03 and 'critical' or 'high'
+                createStationRefillContract(stationId, fuelType, litresNeeded, urgency)
+            end
+        end
+    end
+end
+
 RegisterNetEvent('hbs-fuel:server:contracts:stationNeedsRefill', function(stationId, fuelType, litresNeeded, urgency)
     createStationRefillContract(stationId, fuelType, litresNeeded, urgency)
 end)
@@ -463,6 +480,7 @@ CreateThread(function()
     end
 
     ensureCrudeContract()
+    ensureStationContracts()
 end)
 
 CreateThread(function()
@@ -471,6 +489,7 @@ CreateThread(function()
         Wait((cfg.GenerationIntervalSeconds or 120) * 1000)
         expireOldContracts()
         ensureCrudeContract()
+        ensureStationContracts()
     end
 end)
 
