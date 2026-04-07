@@ -403,6 +403,30 @@ end)
 CreateThread(function()
     Wait(2500)
 
+    MySQL.query.await([[
+        CREATE TABLE IF NOT EXISTS `hbs_fuel_contracts` (
+            `id` INT NOT NULL AUTO_INCREMENT,
+            `contract_id` VARCHAR(64) NOT NULL,
+            `type` VARCHAR(32) NOT NULL,
+            `product` VARCHAR(32) NOT NULL,
+            `pickup_type` VARCHAR(64) NOT NULL,
+            `pickup_id` VARCHAR(64) NOT NULL,
+            `dropoff_type` VARCHAR(64) NOT NULL,
+            `dropoff_id` VARCHAR(64) NOT NULL,
+            `litres_required` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            `litres_delivered` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+            `payout` INT NOT NULL DEFAULT 0,
+            `urgency` VARCHAR(16) NOT NULL DEFAULT 'normal',
+            `status` VARCHAR(16) NOT NULL DEFAULT 'available',
+            `accepted_by` INT NULL DEFAULT NULL,
+            `expires_at` DATETIME NULL DEFAULT NULL,
+            `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (`id`),
+            UNIQUE KEY `uq_hbs_fuel_contracts_contract_id` (`contract_id`)
+        )
+    ]])
+
     local rows = MySQL.query.await([[
         SELECT contract_id, type, product, pickup_type, pickup_id, dropoff_type, dropoff_id,
                litres_required, litres_delivered, payout, urgency, status, accepted_by,
