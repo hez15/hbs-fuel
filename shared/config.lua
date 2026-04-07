@@ -280,6 +280,7 @@ Config.Contracts = {
     DefaultCrudeLitres = 8000.0,
     MaxActivePerPlayer = 1,
     MaxPerStation = 2,
+    AutoRefillThreshold = 0.10,  -- auto-create contracts when station fuel drops below 10%
 
     UrgencyMultipliers = {
         normal = 1.0,
