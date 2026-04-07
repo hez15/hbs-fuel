@@ -194,7 +194,13 @@ end
 
 local function getVehicleModelName(vehicle)
     if not DoesEntityExist(vehicle) then return nil end
-    local display = GetDisplayNameFromVehicleModel(GetEntityModel(vehicle))
+    local model = GetEntityModel(vehicle)
+    for _, name in ipairs(Config.Tanker.SupportedModels or {}) do
+        if model == joaat(name) then
+            return string.lower(name)
+        end
+    end
+    local display = GetDisplayNameFromVehicleModel(model)
     if not display or display == '' then return nil end
     return string.lower(display)
 end
@@ -215,18 +221,24 @@ local function getNearbySupportedTanker(coords, requiredRole)
     local handle, veh = FindFirstVehicle()
     local success
     local bestVeh, bestDist, bestRole, bestModel
+    local foundAnyTanker = false
 
     repeat
         if DoesEntityExist(veh) then
             local modelName = getVehicleModelName(veh)
             local role = getTankerRoleForModel(modelName)
-            if role and (not requiredRole or role == requiredRole) then
+            if role then
                 local dist = #(GetEntityCoords(veh) - coords)
-                if dist <= Config.Tanker.SearchRadius and (not bestDist or dist < bestDist) then
-                    bestVeh = veh
-                    bestDist = dist
-                    bestRole = role
-                    bestModel = modelName
+                if dist <= Config.Tanker.SearchRadius then
+                    foundAnyTanker = true
+                    if not requiredRole or role == requiredRole then
+                        if not bestDist or dist < bestDist then
+                            bestVeh = veh
+                            bestDist = dist
+                            bestRole = role
+                            bestModel = modelName
+                        end
+                    end
                 end
             end
         end
@@ -234,14 +246,16 @@ local function getNearbySupportedTanker(coords, requiredRole)
     until not success
 
     EndFindVehicle(handle)
-    return bestVeh, bestDist, bestRole, bestModel
+    return bestVeh, bestDist, bestRole, bestModel, foundAnyTanker
 end
 
-local function notifyWrongTankerRole(requiredRole)
-    if requiredRole == 'crude' then
-        HBSFuelNotify(Config.Notifications.TankerWrongRoleCrude, 'error')
-    elseif requiredRole == 'refined' then
-        HBSFuelNotify(Config.Notifications.TankerWrongRoleRefined, 'error')
+local function notifyNoTanker(requiredRole, foundAnyTanker)
+    if foundAnyTanker then
+        if requiredRole == 'crude' then
+            HBSFuelNotify(Config.Notifications.TankerWrongRoleCrude, 'error')
+        elseif requiredRole == 'refined' then
+            HBSFuelNotify(Config.Notifications.TankerWrongRoleRefined, 'error')
+        end
     else
         HBSFuelNotify(Config.Notifications.NoTankerNearby, 'error')
     end
@@ -252,31 +266,7 @@ local function getVehiclePlate(vehicle)
 end
 
 local function showStock(refineryId)
-    local data = lib.callback.await('hbs-fuel:server:getRefineryData', false, refineryId)
-    if not data then
-        HBSFuelNotify('Refinery data unavailable.', 'error')
-        return
-    end
-
-    local lines = {
-        ('Crude: %.2f / %.2fL'):format(data.crude.current or 0.0, data.crude.max or 0.0)
-    }
-
-    for fuelType, stock in pairs(data.products or {}) do
-        local fuel = FuelTypes[fuelType]
-        lines[#lines + 1] = ('%s: %.2f / %.2fL'):format(
-            fuel and fuel.label or fuelType,
-            stock.current or 0.0,
-            stock.max or 0.0
-        )
-    end
-
-    lib.alertDialog({
-        header = 'Refinery Stock',
-        content = table.concat(lines, '\n'),
-        centered = true,
-        cancel = false
-    })
+    OpenRefineryStockNUI(refineryId)
 end
 
 local function handleLoadCrude(refineryId, point)
@@ -290,9 +280,9 @@ local function handleLoadCrude(refineryId, point)
         return
     end
 
-    local tanker, _, _, modelName = getNearbySupportedTanker(point, 'crude')
+    local tanker, _, _, modelName, foundAnyTanker = getNearbySupportedTanker(point, 'crude')
     if not tanker then
-        notifyWrongTankerRole('crude')
+        notifyNoTanker('crude', foundAnyTanker)
         return
     end
 
@@ -337,9 +327,9 @@ local function handleUnloadCrude(refineryId, point)
         return
     end
 
-    local tanker, _, _, _ = getNearbySupportedTanker(point, 'crude')
+    local tanker, _, _, _, foundAnyTanker = getNearbySupportedTanker(point, 'crude')
     if not tanker then
-        notifyWrongTankerRole('crude')
+        notifyNoTanker('crude', foundAnyTanker)
         return
     end
 
@@ -411,9 +401,9 @@ local function handleLoadRefined(refineryId, point)
         return
     end
 
-    local tanker, _, _, modelName = getNearbySupportedTanker(point, 'refined')
+    local tanker, _, _, modelName, foundAnyTanker = getNearbySupportedTanker(point, 'refined')
     if not tanker then
-        notifyWrongTankerRole('refined')
+        notifyNoTanker('refined', foundAnyTanker)
         return
     end
 
@@ -489,9 +479,9 @@ local function handleUnloadStation(stationId, point)
         return
     end
 
-    local tanker, _, _, modelName = getNearbySupportedTanker(point, 'refined')
+    local tanker, _, _, modelName, foundAnyTanker = getNearbySupportedTanker(point, 'refined')
     if not tanker then
-        notifyWrongTankerRole('refined')
+        notifyNoTanker('refined', foundAnyTanker)
         return
     end
 
@@ -638,6 +628,16 @@ local function registerRefineryTargets()
                             showStock(refineryId)
                         end
                     },
+                }
+            })
+        end
+
+        if points.contractsBoard then
+            exports.ox_target:addSphereZone({
+                coords = points.contractsBoard,
+                radius = 2.0,
+                debug = Config.Debug,
+                options = {
                     {
                         name = ('hbs_fuel_contracts_%s'):format(refineryId),
                         icon = 'fa-solid fa-clipboard-list',
@@ -710,14 +710,6 @@ local function registerStationTargets()
                         onSelect = function()
                             clearHose()
                             HBSFuelNotify(Config.Notifications.IndustrialHoseReturned, 'success')
-                        end
-                    },
-                    {
-                        name = ('hbs_fuel_station_contracts_%s_%s'):format(stationId, index),
-                        icon = 'fa-solid fa-clipboard-list',
-                        label = 'Open Contracts Board',
-                        onSelect = function()
-                            TriggerEvent('hbs-fuel:client:openContractsBoard')
                         end
                     },
                 }
@@ -844,4 +836,72 @@ AddEventHandler('onResourceStop', function(resource)
         DeleteRope(rope)
         remoteHoseRopes[serverId] = nil
     end
+end)
+
+-- ── CONTRACT NPC SPAWNING ──
+
+local contractNPCs = {}
+
+AddEventHandler('onResourceStop', function(resource)
+    if resource ~= GetCurrentResourceName() then return end
+    for _, ped in ipairs(contractNPCs) do
+        if DoesEntityExist(ped) then
+            DeleteEntity(ped)
+        end
+    end
+    contractNPCs = {}
+end)
+
+local function spawnContractNPCs()
+    local npcs = Config.Contracts and Config.Contracts.NPCs or {}
+    for i, npc in ipairs(npcs) do
+        local hash = joaat(npc.model)
+        RequestModel(hash)
+        local timeout = GetGameTimer() + 5000
+        while not HasModelLoaded(hash) do
+            Wait(0)
+            if GetGameTimer() > timeout then break end
+        end
+        if not HasModelLoaded(hash) then
+            print(('[hbs-fuel] Failed to load NPC model: %s'):format(npc.model))
+            goto continue
+        end
+
+        local x, y, z, w = npc.coords.x, npc.coords.y, npc.coords.z, npc.coords.w or 0.0
+        local ped = CreatePed(0, hash, x, y, z, w, false, true)
+        if not ped or ped == 0 then
+            print(('[hbs-fuel] Failed to spawn contract NPC #%d'):format(i))
+            goto continue
+        end
+
+        SetPedFleeAttributes(ped, 0, false)
+        FreezeEntityPosition(ped, true)
+        SetEntityInvincible(ped, true)
+        SetBlockingOfNonTemporaryEvents(ped, true)
+        SetPedDiesWhenInjured(ped, false)
+        SetPedCanPlayAmbientAnims(ped, true)
+        SetPedCanRagdollFromPlayerImpact(ped, false)
+        SetEntityAsMissionEntity(ped, true, true)
+        PlaceObjectOnGroundProperly(ped)
+        SetModelAsNoLongerNeeded(hash)
+
+        exports['ox_target']:addLocalEntity(ped, {
+            {
+                name = ('hbs_fuel_npc_contracts_%d'):format(i),
+                icon = 'fa-solid fa-clipboard-list',
+                label = 'Open Contracts Board',
+                onSelect = function()
+                    TriggerEvent('hbs-fuel:client:openContractsBoard')
+                end
+            },
+        })
+
+        contractNPCs[#contractNPCs + 1] = ped
+        ::continue::
+    end
+end
+
+CreateThread(function()
+    Wait(2000)
+    spawnContractNPCs()
 end)

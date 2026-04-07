@@ -295,7 +295,20 @@ Config.Contracts = {
             base = 1000,        -- refined delivery is more involved
             perLitre = 0.40,    -- higher per-litre for precision delivery
         }
-    }
+    },
+
+    NPCs = {
+        {
+            label = 'Fuel Dispatch',
+            coords = vec4(1684.5, -1665.0, 110.44, 215.0),
+            model = 's_m_y_dockwork_01',
+        },
+        {
+            label = 'Fuel Dispatch',
+            coords = vec4(-714.0, -909.0, 19.22, 90.0),
+            model = 's_m_y_dockwork_01',
+        },
+    },
 }
 
 Config.Items = {

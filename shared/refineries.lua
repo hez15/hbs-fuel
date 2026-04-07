@@ -23,6 +23,7 @@ Refineries = {
             processStart = vec3(1687.2, -1662.05, 110.44),
             valve = vec3(1661.34, -1685.59, 111.53),
             tankerLoad = vec3(1673.77, -1619.95, 111.48),
+            contractsBoard = vec3(1684.5, -1665.0, 110.44),
         }
     }
 }
