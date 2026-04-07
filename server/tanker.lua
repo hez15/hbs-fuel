@@ -1,5 +1,6 @@
 lib.callback.register('hbs-fuel:server:getTankerLoad', function(_, plate)
     if not plate then return nil end
+    plate = plate:gsub('^%s*(.-)%s*$', '%1')
 
     local row = MySQL.single.await('SELECT fuel_type, litres, max_litres FROM hbs_fuel_tanker_state WHERE plate = ?', { plate })
     if not row then return nil end

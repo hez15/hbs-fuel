@@ -192,6 +192,7 @@ end
 local function ensureCrudeContract()
     local cfg = getCfg()
     if cfg.Enabled == false then return end
+    if cfg.CrudeHaulEnabled == false then return end
 
     local minimum = cfg.CrudeMinContracts or 1
     local count = 0

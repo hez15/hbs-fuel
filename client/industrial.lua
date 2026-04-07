@@ -528,10 +528,10 @@ local function registerRefineryTargets()
     for refineryId, refinery in pairs(Refineries) do
         local points = refinery.points or {}
 
-        if points.crudeSource then
+        if points.crudeSource and (not Config.Contracts or Config.Contracts.CrudeHaulEnabled ~= false) then
             exports.ox_target:addSphereZone({
                 coords = points.crudeSource,
-                radius = 2.0,
+                radius = 3.5,
                 debug = Config.Debug,
                 options = {
                     {
@@ -561,7 +561,7 @@ local function registerRefineryTargets()
         for index, coords in ipairs(points.crudeDelivery or {}) do
             exports.ox_target:addSphereZone({
                 coords = coords,
-                radius = 2.5,
+                radius = 4.0,
                 debug = Config.Debug,
                 options = {
                     {
@@ -591,7 +591,7 @@ local function registerRefineryTargets()
         if points.valve then
             exports.ox_target:addSphereZone({
                 coords = points.valve,
-                radius = 1.5,
+                radius = 2.5,
                 debug = Config.Debug,
                 options = {
                     {
@@ -609,7 +609,7 @@ local function registerRefineryTargets()
         if points.processStart then
             exports.ox_target:addSphereZone({
                 coords = points.processStart,
-                radius = 2.0,
+                radius = 3.0,
                 debug = Config.Debug,
                 options = {
                     {
@@ -635,7 +635,7 @@ local function registerRefineryTargets()
         if points.contractsBoard then
             exports.ox_target:addSphereZone({
                 coords = points.contractsBoard,
-                radius = 2.0,
+                radius = 3.0,
                 debug = Config.Debug,
                 options = {
                     {
@@ -653,7 +653,7 @@ local function registerRefineryTargets()
         if points.tankerLoad then
             exports.ox_target:addSphereZone({
                 coords = points.tankerLoad,
-                radius = 2.5,
+                radius = 4.0,
                 debug = Config.Debug,
                 options = {
                     {
@@ -689,7 +689,7 @@ local function registerStationTargets()
         for index, coords in ipairs(unloadPoints) do
             exports.ox_target:addSphereZone({
                 coords = coords,
-                radius = 2.5,
+                radius = 4.0,
                 debug = Config.Debug,
                 options = {
                     {

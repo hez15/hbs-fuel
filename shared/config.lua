@@ -58,7 +58,7 @@ Config.NozzleMaxDistance = 12.0
 Config.RequirePlayerOutsideVehicleForPump = true
 Config.ShutOffEngineDuringRefuel = true
 
-Config.NotificationsEnabled = false
+Config.NotificationsEnabled = true
 Config.NotifyTitle = 'Fuel'
 
 
@@ -138,7 +138,7 @@ Config.Tanker = {
     },
     SupportedModels = { 'tanker', 'tanker2' },
     DefaultMaxLitres = 12000.0,
-    SearchRadius = 12.0,
+    SearchRadius = 18.0,
     HoseMaxDistance = 15.0,
     ValveOpenSeconds = 120,
     CrudeLoadStepSeconds = 10,
@@ -273,6 +273,7 @@ Config.RefineryRecipes = {
 
 Config.Contracts = {
     Enabled = true,
+    CrudeHaulEnabled = true,     -- set false to disable crude haul contracts
     ExpirySeconds = 1800,
     GenerationIntervalSeconds = 120,
     CrudeMinContracts = 1,
