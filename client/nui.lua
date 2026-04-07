@@ -172,6 +172,25 @@ RegisterNUICallback('nuiOrderFuel', function(data, cb)
     end
 end)
 
+-- ── REFINERY STOCK NUI ──
+
+function OpenRefineryStockNUI(refineryId)
+    local data = lib.callback.await('hbs-fuel:server:getRefineryData', false, refineryId)
+    if not data then
+        HBSFuelNotify('Refinery data unavailable.', 'error')
+        return
+    end
+
+    local refinery = Refineries[refineryId]
+    SendNUIMessage({
+        action = 'openRefineryStock',
+        label = refinery and refinery.label or 'Refinery Stock',
+        crude = data.crude,
+        products = data.products,
+    })
+    setNuiFocus(true)
+end
+
 -- ── CONTRACTS NUI ──
 
 local function resolveLabel(locationType, locationId)

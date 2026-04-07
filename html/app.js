@@ -31,6 +31,9 @@ window.addEventListener('message', function(event) {
         case 'openContracts':
             openContractsPanel(data);
             break;
+        case 'openRefineryStock':
+            openRefineryPanel(data);
+            break;
         case 'updateProgress':
             updateProgress(data);
             break;
@@ -395,6 +398,41 @@ function submitFuelOrder() {
             urgency: orderState.selectedUrgency,
         }),
     });
+}
+
+// ── REFINERY STOCK ──
+function openRefineryPanel(data) {
+    document.getElementById('refinery-panel-name').textContent = data.label || 'Refinery Stock';
+
+    // Crude
+    const crudeC = data.crude ? Math.round(data.crude.current) : 0;
+    const crudeM = data.crude ? Math.round(data.crude.max) : 0;
+    const crudePct = crudeM > 0 ? Math.round((crudeC / crudeM) * 100) : 0;
+    document.getElementById('refinery-crude-value').textContent = crudeC.toLocaleString() + ' / ' + crudeM.toLocaleString() + ' L';
+    document.getElementById('refinery-crude-bar').style.width = crudePct + '%';
+
+    // Products
+    const list = document.getElementById('refinery-products-list');
+    list.innerHTML = '';
+    const products = data.products || {};
+    for (const [fuelType, info] of Object.entries(products)) {
+        const cur = Math.round(info.current || 0);
+        const max = Math.round(info.max || 0);
+        const pct = max > 0 ? Math.round((cur / max) * 100) : 0;
+        const barClass = pct > 60 ? 'high' : pct > 25 ? 'mid' : 'low';
+        list.innerHTML += `
+            <div class="stock-item">
+                <div class="stock-item-header">
+                    <span class="stock-item-label">${capitalize(fuelType)}</span>
+                    <span class="stock-item-value">${cur.toLocaleString()}L / ${max.toLocaleString()}L (${pct}%)</span>
+                </div>
+                <div class="stock-bar-track">
+                    <div class="stock-bar-fill ${barClass}" style="width: ${pct}%"></div>
+                </div>
+            </div>`;
+    }
+
+    showPanel('refinery-panel');
 }
 
 // ── CONTRACTS ──
