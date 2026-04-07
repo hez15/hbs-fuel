@@ -104,6 +104,41 @@
                     <h3>Fuel Stock</h3>
                     <div id="stock-bars"></div>
                 </div>
+
+                <div id="owner-orders-section" class="orders-section">
+                    <h3>Active Orders</h3>
+                    <div id="owner-orders-list"></div>
+                </div>
+
+                <div id="owner-order-form" class="order-form">
+                    <h3>Order Fuel Delivery</h3>
+                    <div class="form-group">
+                        <label>Fuel Type</label>
+                        <div id="order-fuel-options" class="option-row"></div>
+                    </div>
+                    <div class="form-group">
+                        <label>Amount (Litres)</label>
+                        <div class="slider-group">
+                            <input type="range" id="order-litres-slider" min="500" max="12000" value="4000" step="500" oninput="updateOrderSlider()">
+                            <div class="slider-labels">
+                                <span id="order-litres-value">4000 L</span>
+                                <span id="order-cost-estimate"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Urgency</label>
+                        <div class="option-row">
+                            <button class="option-btn selected" data-urgency="normal" onclick="selectUrgency('normal')">Normal</button>
+                            <button class="option-btn" data-urgency="high" onclick="selectUrgency('high')">High</button>
+                            <button class="option-btn" data-urgency="critical" onclick="selectUrgency('critical')">Critical</button>
+                        </div>
+                    </div>
+                    <button class="action-btn" onclick="submitFuelOrder()">
+                        <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
+                        Place Order
+                    </button>
+                </div>
             </div>
         </div>
 

@@ -252,8 +252,18 @@ function openOwnerPanel(data) {
             </div>`;
     }
 
-    renderOrders(data.orders || []);
-    renderOrderForm(data.fuelTypes || []);
+    // Orders and order form (stations only)
+    const ordersSection = document.getElementById('owner-orders-section');
+    const orderForm = document.getElementById('owner-order-form');
+    if (data.entityType === 'station') {
+        ordersSection.style.display = '';
+        orderForm.style.display = '';
+        renderOrders(data.orders || []);
+        renderOrderForm(data.fuelTypes || []);
+    } else {
+        ordersSection.style.display = 'none';
+        orderForm.style.display = 'none';
+    }
 
     showPanel('owner-panel');
 }
