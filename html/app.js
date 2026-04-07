@@ -210,6 +210,7 @@ function openOwnerPanel(data) {
     ownerState.entityType = data.entityType;
     ownerState.entityId = data.entityId;
     ownerState.priceMultiplier = data.priceMultiplier || 1.0;
+    window._payoutConfig = data.payoutConfig || null;
 
     document.getElementById('owner-station-name').textContent = data.label || 'Station Dashboard';
     document.getElementById('dash-revenue-available').textContent = Math.floor(data.revenueAvailable || 0);
@@ -362,11 +363,23 @@ function selectUrgency(urgency) {
     document.querySelectorAll('[data-urgency]').forEach(btn => {
         btn.classList.toggle('selected', btn.dataset.urgency === urgency);
     });
+    updateOrderSlider();
 }
 
 function updateOrderSlider() {
     const val = document.getElementById('order-litres-slider').value;
     document.getElementById('order-litres-value').textContent = val + ' L';
+
+    const cfg = window._payoutConfig;
+    if (cfg && cfg.rates) {
+        const rates = cfg.rates.refined || { base: 1000, perLitre: 0.40 };
+        const urgencyBtns = document.querySelectorAll('[data-urgency].selected');
+        const urgency = urgencyBtns.length > 0 ? urgencyBtns[0].dataset.urgency : 'normal';
+        const mult = (cfg.urgencyMultipliers && cfg.urgencyMultipliers[urgency]) || 1.0;
+        const cost = Math.floor((rates.base + rates.perLitre * val) * mult);
+        const el = document.getElementById('order-cost-estimate');
+        if (el) el.textContent = '$' + cost.toLocaleString();
+    }
 }
 
 function submitFuelOrder() {

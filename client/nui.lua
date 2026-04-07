@@ -131,6 +131,10 @@ function OpenOwnerDashboardNUI(entityType, entityId)
         stock = data.stock,
         orders = orders,
         fuelTypes = fuelTypes,
+        payoutConfig = {
+            rates = Config.Contracts and Config.Contracts.Payout or { crude = { base = 750, perLitre = 0.25 }, refined = { base = 1000, perLitre = 0.40 } },
+            urgencyMultipliers = Config.Contracts and Config.Contracts.UrgencyMultipliers or { normal = 1.0, high = 1.15, critical = 1.30 },
+        },
     })
     setNuiFocus(true)
 end
@@ -162,7 +166,6 @@ RegisterNUICallback('nuiOrderFuel', function(data, cb)
     local result = lib.callback.await('hbs-fuel:server:ownerOrderFuel', false, data.entityId, data.fuelType, tonumber(data.litres), data.urgency)
     if result and result.ok then
         HBSFuelNotify(result.message or 'Order placed!', 'success')
-        -- Refresh dashboard
         OpenOwnerDashboardNUI('station', data.entityId)
     else
         HBSFuelNotify(result and result.message or 'Failed to place order.', 'error')
