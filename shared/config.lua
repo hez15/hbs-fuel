@@ -123,6 +123,15 @@ Config.IndustrialNozzle = {
     },
 }
 
+Config.UnloadProps = {
+    Enabled = true,
+    Props = {
+        { model = 'prop_gas_tank_02a', offset = vec3(0.0, 0.0, -0.5) },
+        { model = 'prop_barrier_work05', offset = vec3(2.0, 0.0, -0.5) },
+        { model = 'prop_barrier_work05', offset = vec3(-2.0, 0.0, -0.5) },
+    },
+}
+
 Config.Tanker = {
     Roles = {
         crude = {
@@ -335,7 +344,26 @@ Config.Ownership = {
     StationPrices = {
         ltd_little_seoul = 150000,
         ltd_davis = 120000,
+        ltd_strawberry = 140000,
+        ltd_mirror_park = 130000,
+        ltd_east_vinewood = 145000,
+        ron_little_seoul = 135000,
+        ron_del_perro = 160000,
+        ron_paleto = 80000,
+        ron_sandy_shores = 75000,
+        ron_harmony = 70000,
+        ron_catfish_view = 72000,
+        globe_downtown = 175000,
+        globe_tataviam = 95000,
+        xero_la_mesa = 140000,
+        xero_murrieta_heights = 130000,
+        flywheels_vinewood = 85000,
+        gas_route68 = 70000,
+        gas_grapeseed = 65000,
+        gas_richman_glen = 110000,
+        gas_chumash = 90000,
         airport_aviation = 250000,
+        sandy_airfield = 120000,
     },
     RefineryPrices = {},
 }

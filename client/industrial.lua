@@ -820,6 +820,71 @@ local function registerOilShopTargets()
     end
 end
 
+local unloadProps = {}
+
+local function spawnUnloadProps()
+    if not Config.UnloadProps or not Config.UnloadProps.Enabled then return end
+
+    local propDefs = Config.UnloadProps.Props or {}
+
+    for _, station in pairs(Stations) do
+        for _, coords in ipairs(station.unloadPoints or {}) do
+            for _, def in ipairs(propDefs) do
+                local hash = joaat(def.model)
+                RequestModel(hash)
+                local timeout = GetGameTimer() + 5000
+                while not HasModelLoaded(hash) do
+                    Wait(0)
+                    if GetGameTimer() > timeout then break end
+                end
+                if HasModelLoaded(hash) then
+                    local off = def.offset or vec3(0, 0, 0)
+                    local prop = CreateObject(hash, coords.x + off.x, coords.y + off.y, coords.z + off.z, false, false, false)
+                    if prop and prop ~= 0 then
+                        PlaceObjectOnGroundProperly(prop)
+                        FreezeEntityPosition(prop, true)
+                        SetEntityCollision(prop, false, false)
+                        unloadProps[#unloadProps + 1] = prop
+                    end
+                    SetModelAsNoLongerNeeded(hash)
+                end
+            end
+        end
+    end
+
+    for _, shop in pairs(Config.OilShops or {}) do
+        for _, coords in ipairs(shop.unloadPoints or {}) do
+            local hash = joaat('prop_gas_tank_02a')
+            RequestModel(hash)
+            local timeout = GetGameTimer() + 5000
+            while not HasModelLoaded(hash) do
+                Wait(0)
+                if GetGameTimer() > timeout then break end
+            end
+            if HasModelLoaded(hash) then
+                local prop = CreateObject(hash, coords.x, coords.y, coords.z - 0.5, false, false, false)
+                if prop and prop ~= 0 then
+                    PlaceObjectOnGroundProperly(prop)
+                    FreezeEntityPosition(prop, true)
+                    SetEntityCollision(prop, false, false)
+                    unloadProps[#unloadProps + 1] = prop
+                end
+                SetModelAsNoLongerNeeded(hash)
+            end
+        end
+    end
+end
+
+local function cleanupUnloadProps()
+    for _, prop in ipairs(unloadProps) do
+        if DoesEntityExist(prop) then
+            SetEntityAsMissionEntity(prop, true, true)
+            DeleteObject(prop)
+        end
+    end
+    unloadProps = {}
+end
+
 local function registerStationTargets()
     for stationId, station in pairs(Stations) do
         local unloadPoints = station.unloadPoints or { station.coords }
@@ -861,6 +926,7 @@ CreateThread(function()
     registerRefineryTargets()
     registerStationTargets()
     registerOilShopTargets()
+    spawnUnloadProps()
 end)
 
 CreateThread(function()
@@ -989,6 +1055,7 @@ AddEventHandler('onResourceStop', function(resource)
         end
     end
     contractNPCs = {}
+    cleanupUnloadProps()
 end)
 
 local function spawnContractNPCs()
