@@ -78,10 +78,10 @@ local function deletePropEntity(entity)
     if entity and DoesEntityExist(entity) then
         DetachEntity(entity, true, true)
         SetEntityAsMissionEntity(entity, true, true)
-        SetEntityAsNoLongerNeeded(entity)
-        Wait(0)
         DeleteObject(entity)
+        Wait(0)
         if DoesEntityExist(entity) then
+            SetEntityAsNoLongerNeeded(entity)
             DeleteEntity(entity)
         end
     end
@@ -106,6 +106,15 @@ local function clearNozzleVisuals()
         deletePropEntity(nozzleVisual.prop)
     end
     nozzleVisual.prop = nil
+
+    -- Fallback: delete any lingering attached nozzle props
+    local nozzleHash = joaat(Config.Nozzles.Vehicle.model or 'prop_cs_fuel_nozle')
+    local attached = GetClosestObjectOfType(GetEntityCoords(ped), 1.0, nozzleHash, false, false, false)
+    if attached and attached ~= 0 and IsEntityAttachedToEntity(attached, ped) then
+        DetachEntity(attached, true, true)
+        SetEntityAsMissionEntity(attached, true, true)
+        DeleteObject(attached)
+    end
 end
 
 local function playNozzleCarryAnim(force)
