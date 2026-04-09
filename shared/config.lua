@@ -121,7 +121,7 @@ Config.IndustrialNozzle = {
         timeMultiplier = 1.0,
         breakable = false,
         anchorOffset = { x = 0.0, y = 0.0, z = 1.15 },
-        anchorModel = 'prop_gas_tank_02a',
+        anchorModel = 'hei_prop_hei_hose_nozzle',
     },
 }
 
