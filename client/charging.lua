@@ -1,12 +1,14 @@
 if not Config.Charging or not Config.Charging.Enabled then return end
 
 local chargingProps = {}
-local chargingHose = {
+local chargingState = {
     active = false,
+    vehicle = nil,
+    stationId = nil,
+    chargerCoords = nil,
     prop = nil,
     anchor = nil,
     rope = nil,
-    stationId = nil,
 }
 
 local function isElectricVehicle(vehicle)
@@ -22,26 +24,25 @@ local function clearChargingHose()
     end
     ClearPedSecondaryTask(ped)
 
-    if chargingHose.rope then
-        DeleteRope(chargingHose.rope)
-        chargingHose.rope = nil
+    if chargingState.rope then
+        DeleteRope(chargingState.rope)
+        chargingState.rope = nil
     end
-    if chargingHose.prop and DoesEntityExist(chargingHose.prop) then
-        DetachEntity(chargingHose.prop, true, true)
-        SetEntityAsMissionEntity(chargingHose.prop, true, true)
-        DeleteObject(chargingHose.prop)
-        if DoesEntityExist(chargingHose.prop) then DeleteEntity(chargingHose.prop) end
+    if chargingState.prop and DoesEntityExist(chargingState.prop) then
+        DetachEntity(chargingState.prop, true, true)
+        SetEntityAsMissionEntity(chargingState.prop, true, true)
+        DeleteObject(chargingState.prop)
+        if DoesEntityExist(chargingState.prop) then DeleteEntity(chargingState.prop) end
     end
-    if chargingHose.anchor and DoesEntityExist(chargingHose.anchor) then
-        SetEntityAsMissionEntity(chargingHose.anchor, true, true)
-        DeleteObject(chargingHose.anchor)
-        if DoesEntityExist(chargingHose.anchor) then DeleteEntity(chargingHose.anchor) end
+    if chargingState.anchor and DoesEntityExist(chargingState.anchor) then
+        SetEntityAsMissionEntity(chargingState.anchor, true, true)
+        DeleteObject(chargingState.anchor)
+        if DoesEntityExist(chargingState.anchor) then DeleteEntity(chargingState.anchor) end
     end
 
-    chargingHose.prop = nil
-    chargingHose.anchor = nil
-    chargingHose.active = false
-    chargingHose.stationId = nil
+    chargingState.prop = nil
+    chargingState.anchor = nil
+    chargingState.rope = nil
 end
 
 local function createChargingHose(anchorCoords)
@@ -52,11 +53,11 @@ local function createChargingHose(anchorCoords)
     local nozzleHash = joaat(nozzleCfg.model or 'hei_prop_hei_hose_nozzle')
     RequestModel(nozzleHash)
     local timeout = GetGameTimer() + 5000
-    while not HasModelLoaded(nozzleHash) do Wait(0); if GetGameTimer() > timeout then return false end end
+    while not HasModelLoaded(nozzleHash) do Wait(0); if GetGameTimer() > timeout then return end end
 
     local pedCoords = GetEntityCoords(ped)
     local prop = CreateObject(nozzleHash, pedCoords.x, pedCoords.y, pedCoords.z + 0.2, true, true, false)
-    if not prop or prop == 0 then return false end
+    if not prop or prop == 0 then return end
 
     local bone = GetPedBoneIndex(ped, nozzleCfg.bone or 57005)
     local attach = nozzleCfg.offset or {}
@@ -68,22 +69,23 @@ local function createChargingHose(anchorCoords)
         true, true, false, true, 1, true)
     SetModelAsNoLongerNeeded(nozzleHash)
 
-    -- Anchor prop at charger
     local anchorModelName = nozzleCfg.rope and nozzleCfg.rope.anchorModel or nozzleCfg.model
     local anchorHash = joaat(anchorModelName)
     RequestModel(anchorHash)
     timeout = GetGameTimer() + 5000
     while not HasModelLoaded(anchorHash) do Wait(0); if GetGameTimer() > timeout then break end end
 
-    local anchor = CreateObject(anchorHash, anchorCoords.x, anchorCoords.y, anchorCoords.z, false, false, false)
-    if anchor and anchor ~= 0 then
-        FreezeEntityPosition(anchor, true)
-        SetEntityCollision(anchor, false, false)
-        PlaceObjectOnGroundProperly(anchor)
-        SetModelAsNoLongerNeeded(anchorHash)
+    local anchor = nil
+    if HasModelLoaded(anchorHash) then
+        anchor = CreateObject(anchorHash, anchorCoords.x, anchorCoords.y, anchorCoords.z, false, false, false)
+        if anchor and anchor ~= 0 then
+            FreezeEntityPosition(anchor, true)
+            SetEntityCollision(anchor, false, false)
+            PlaceObjectOnGroundProperly(anchor)
+            SetModelAsNoLongerNeeded(anchorHash)
+        end
     end
 
-    -- Rope
     local ropeCfg = nozzleCfg.rope or {}
     if ropeCfg.enabled ~= false then
         if not RopeAreTexturesLoaded() then RopeLoadTextures() end
@@ -94,20 +96,19 @@ local function createChargingHose(anchorCoords)
             ropeCfg.length or 7.5, ropeCfg.type or 4, ropeCfg.length or 7.5,
             ropeCfg.minLength or 0.25, ropeCfg.lengthChangeRate or 0.0,
             false, false, false,
-            ropeCfg.timeMultiplier or 1.0,
-            ropeCfg.breakable or false
+            ropeCfg.timeMultiplier or 1.0, ropeCfg.breakable or false
         )
         if rope then
-            AttachEntitiesToRope(rope, anchor or 0, prop, anchorCoords.x + anchorOff.x, anchorCoords.y + anchorOff.y, anchorCoords.z + anchorOff.z, pedCoords.x, pedCoords.y, pedCoords.z + 0.5, ropeCfg.length or 7.5, false, false, nil, nil)
-            chargingHose.rope = rope
+            AttachEntitiesToRope(rope, anchor or 0, prop,
+                anchorCoords.x + anchorOff.x, anchorCoords.y + anchorOff.y, anchorCoords.z + anchorOff.z,
+                pedCoords.x, pedCoords.y, pedCoords.z + 0.5, ropeCfg.length or 7.5, false, false, nil, nil)
+            chargingState.rope = rope
         end
     end
 
-    chargingHose.prop = prop
-    chargingHose.anchor = anchor
-    chargingHose.active = true
+    chargingState.prop = prop
+    chargingState.anchor = anchor
 
-    -- Play carry anim
     local anim = Config.NozzleCarryAnim
     if anim and anim.dict and anim.clip then
         RequestAnimDict(anim.dict)
@@ -115,8 +116,6 @@ local function createChargingHose(anchorCoords)
         while not HasAnimDictLoaded(anim.dict) do Wait(0); if GetGameTimer() > timeout then break end end
         TaskPlayAnim(ped, anim.dict, anim.clip, 2.0, 2.0, -1, anim.flag or 49, 0.0, false, false, false)
     end
-
-    return true
 end
 
 local function handleCharge(stationId, chargerCoords)
@@ -125,57 +124,71 @@ local function handleCharge(stationId, chargerCoords)
         HBSFuelNotify('Exit the vehicle to charge.', 'error')
         return
     end
+
     local vehicle = lib.getClosestVehicle(GetEntityCoords(ped), 8.0, true)
     if not vehicle or vehicle == 0 or not isElectricVehicle(vehicle) then
         HBSFuelNotify('No electric vehicle nearby.', 'error')
         return
     end
 
-    local currentFuel = GetCachedVehicleFuel(vehicle) or 0.0
-    local capacity = HBSFuel.GetTankCapacity(vehicle)
-    local needed = math.max(capacity - currentFuel, 0)
+    chargingState.active = true
+    chargingState.vehicle = vehicle
+    chargingState.stationId = stationId
+    chargingState.chargerCoords = chargerCoords
 
-    if needed <= 0.5 then
-        HBSFuelNotify('Vehicle is already fully charged.', 'inform')
+    -- Open the same refuel NUI used for normal pumps
+    local currentFuel = GetCachedVehicleFuel(vehicle) or 0.0
+    local tankCapacity = HBSFuel.GetTankCapacity(vehicle)
+    local pricePerLitre = Config.Charging.PricePerLitre or 1.80
+
+    SendNUIMessage({
+        action = 'openRefuel',
+        stationId = stationId,
+        stationLabel = 'EV Charging',
+        fuelTypes = {
+            { value = 'electric', label = 'Electric', price = pricePerLitre },
+        },
+        currentFuel = currentFuel,
+        tankCapacity = tankCapacity,
+    })
+    SetNuiFocus(true, true)
+end
+
+-- Intercept the NUI confirm for EV charging
+RegisterNUICallback('nuiConfirmRefuel', function(data, cb)
+    if not chargingState.active then return end
+    if data.fuelType ~= 'electric' then return end
+
+    cb('ok')
+    SetNuiFocus(false, false)
+
+    local vehicle = chargingState.vehicle
+    local stationId = chargingState.stationId
+    local chargerCoords = chargingState.chargerCoords
+
+    if not vehicle or not DoesEntityExist(vehicle) then
+        chargingState.active = false
         return
     end
 
-    local pricePerLitre = Config.Charging.PricePerLitre or 1.80
+    local litres = tonumber(data.litres) or 0.0
+    local payment = data.paymentMethod or 'cash'
+    if litres <= 0 then
+        chargingState.active = false
+        return
+    end
 
-    local input = lib.inputDialog('EV Charging', {
-        {
-            type = 'slider',
-            label = 'Charge Amount (L)',
-            default = math.ceil(needed),
-            min = 1,
-            max = math.ceil(needed),
-            step = 1,
-        },
-        {
-            type = 'select',
-            label = 'Payment',
-            options = {
-                { label = 'Cash', value = 'cash' },
-                { label = 'Bank', value = 'bank' },
-            },
-            default = 'cash',
-        },
-    })
-
-    if not input then return end
-
-    local litres = tonumber(input[1]) or 0.0
-    local payment = input[2] or 'cash'
-    if litres <= 0 then return end
-    litres = math.min(litres, needed)
+    local currentFuel = GetCachedVehicleFuel(vehicle) or 0.0
+    local capacity = HBSFuel.GetTankCapacity(vehicle)
+    litres = math.min(litres, math.max(capacity - currentFuel, 0))
 
     local result = lib.callback.await('hbs-fuel:server:startCharging', false, stationId, 'electric', litres, payment)
     if not result or not result.ok then
         HBSFuelNotify(result and result.message or 'Charging failed.', 'error')
+        chargingState.active = false
         return
     end
 
-    -- Create hose from charger to player
     createChargingHose(chargerCoords)
 
     local chargeRate = Config.Charging.ChargeRate or 2.0
@@ -189,6 +202,8 @@ local function handleCharge(stationId, chargerCoords)
     })
 
     clearChargingHose()
+    chargingState.active = false
+    chargingState.vehicle = nil
 
     if ok then
         local finalFuel = math.min(currentFuel + litres, capacity)
@@ -203,7 +218,7 @@ local function handleCharge(stationId, chargerCoords)
     else
         HBSFuelNotify('Charging cancelled.', 'inform')
     end
-end
+end)
 
 -- ── PROP SPAWNING + TARGETS ──
 
