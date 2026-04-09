@@ -34,6 +34,7 @@ local function loadOwnership()
                 purchasedAt = row.purchased_at,
                 revenueTotal = tonumber(row.revenue_total) or 0.0,
                 revenueWithdrawn = tonumber(row.revenue_withdrawn) or 0.0,
+                businessId = row.business_id,
             }
         end
     end)
@@ -43,14 +44,15 @@ local function saveOwnership(data)
     if not data then return end
     MySQL.insert.await([[
         INSERT INTO hbs_fuel_ownership
-            (entity_type, entity_id, owner_identifier, owner_name, purchase_price, purchased_at, revenue_total, revenue_withdrawn)
-        VALUES (?, ?, ?, ?, ?, NOW(), ?, ?)
+            (entity_type, entity_id, owner_identifier, owner_name, purchase_price, purchased_at, revenue_total, revenue_withdrawn, business_id)
+        VALUES (?, ?, ?, ?, ?, NOW(), ?, ?, ?)
         ON DUPLICATE KEY UPDATE
             owner_identifier = VALUES(owner_identifier),
             owner_name = VALUES(owner_name),
             purchase_price = VALUES(purchase_price),
             revenue_total = VALUES(revenue_total),
             revenue_withdrawn = VALUES(revenue_withdrawn),
+            business_id = VALUES(business_id),
             purchased_at = purchased_at,
             updated_at = NOW()
     ]], {
@@ -61,6 +63,7 @@ local function saveOwnership(data)
         data.purchasePrice,
         data.revenueTotal,
         data.revenueWithdrawn,
+        data.businessId,
     })
 end
 
@@ -74,6 +77,16 @@ function AddOwnerRevenue(entityType, entityId, amount)
     local key = ('%s_%s'):format(entityType, entityId)
     local ownership = OwnershipCache[key]
     if not ownership or not ownership.ownerIdentifier then return end
+
+    local businessId = ownership.businessId
+    if businessId and Config.Ownership.UseNonstopBanking then
+        pcall(function()
+            exports['nonstop-banking']:CreditBusinessAccount(businessId, math.floor(amount), {
+                description = ('Fuel sale at %s'):format(entityId),
+                source = 'hbs-fuel',
+            })
+        end)
+    end
 
     ownership.revenueTotal = (ownership.revenueTotal or 0) + amount
     saveOwnership(ownership)
@@ -179,6 +192,8 @@ lib.callback.register('hbs-fuel:server:getOwnerDashboard', function(source, enti
         revenueTotal = ownership.revenueTotal,
         revenueWithdrawn = ownership.revenueWithdrawn,
         revenueAvailable = HBSFuel.Round(ownership.revenueTotal - ownership.revenueWithdrawn, 2),
+        businessId = ownership.businessId,
+        useNonstopBanking = Config.Ownership.UseNonstopBanking or false,
         stock = stockData,
         priceMultiplier = priceMultiplier,
     }
@@ -211,6 +226,10 @@ lib.callback.register('hbs-fuel:server:withdrawRevenue', function(source, entity
     local ownership = GetOwnership(entityType, entityId)
     if not ownership then
         return { ok = false, message = 'Ownership data not found.' }
+    end
+
+    if ownership.businessId and Config.Ownership.UseNonstopBanking then
+        return { ok = false, message = 'Revenue goes directly to your business account. Check nonstop-banking.' }
     end
 
     local available = HBSFuel.Round(ownership.revenueTotal - ownership.revenueWithdrawn, 2)
@@ -267,6 +286,20 @@ lib.callback.register('hbs-fuel:server:purchaseEntity', function(source, entityT
         return { ok = false, message = 'Payment failed.' }
     end
 
+    local businessId = nil
+    if Config.Ownership.UseNonstopBanking then
+        local stationLabel = Stations[entityId] and Stations[entityId].label or entityId
+        local ok, id = pcall(function()
+            return exports['nonstop-banking']:CreateBusinessAccount(citizenId, {
+                name = stationLabel,
+                ownerName = getPlayerName(source),
+            })
+        end)
+        if ok and id then
+            businessId = id
+        end
+    end
+
     local key = ('%s_%s'):format(entityType, entityId)
     OwnershipCache[key] = {
         entityType = entityType,
@@ -276,6 +309,7 @@ lib.callback.register('hbs-fuel:server:purchaseEntity', function(source, entityT
         purchasePrice = price,
         revenueTotal = 0.0,
         revenueWithdrawn = 0.0,
+        businessId = businessId,
     }
 
     saveOwnership(OwnershipCache[key])
@@ -345,10 +379,16 @@ CreateThread(function()
           `purchased_at` TIMESTAMP NULL DEFAULT NULL,
           `revenue_total` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
           `revenue_withdrawn` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+          `business_id` VARCHAR(128) DEFAULT NULL,
           `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           PRIMARY KEY (`id`),
           UNIQUE KEY `uq_hbs_fuel_ownership_entity` (`entity_type`, `entity_id`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     ]])
+
+    pcall(function()
+        MySQL.query.await([[ALTER TABLE hbs_fuel_ownership ADD COLUMN IF NOT EXISTS `business_id` VARCHAR(128) DEFAULT NULL]])
+    end)
+
     loadOwnership()
 end)
