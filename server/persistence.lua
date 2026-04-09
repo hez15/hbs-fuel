@@ -161,6 +161,18 @@ CreateThread(function()
     ensureTables()
     loadStationState()
     loadRefineryState()
+
+    -- Emergency refill: top up stations to 10% if below
+    local minPct = Config.RestartMinFuelPercent or 0.10
+    for stationId, station in pairs(StationState) do
+        for fuelType, tank in pairs(station.tanks or {}) do
+            if tank.max > 0 and (tank.current / tank.max) < minPct then
+                tank.current = math.floor(tank.max * minPct)
+                SaveStationState(stationId)
+            end
+        end
+    end
+
     started = true
 
     while true do

@@ -23,5 +23,12 @@ FuelTypes = {
         aircraftOnly = false,
         canUseJerryCan = false,
         byproduct = true,
+    },
+    electric = {
+        label = 'Electric',
+        price = 1.80,
+        aircraftOnly = false,
+        canUseJerryCan = false,
+        isElectric = true,
     }
 }

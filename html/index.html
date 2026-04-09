@@ -168,6 +168,64 @@
             </div>
         </div>
 
+        <!-- EV CHARGING PANEL -->
+        <div id="charging-panel" class="panel hidden">
+            <div class="panel-header">
+                <div class="panel-icon ev-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg></div>
+                <h2>EV Charging</h2>
+                <button class="close-btn" onclick="closePanel()">&times;</button>
+            </div>
+
+            <div class="panel-body">
+                <div class="ev-battery-section">
+                    <div class="ev-battery-ring">
+                        <svg viewBox="0 0 120 120" class="ev-ring-svg">
+                            <circle cx="60" cy="60" r="50" fill="none" stroke="#2a2a2e" stroke-width="8"/>
+                            <circle id="ev-ring-fill" cx="60" cy="60" r="50" fill="none" stroke="#22c55e" stroke-width="8" stroke-linecap="round" stroke-dasharray="314.16" stroke-dashoffset="314.16" transform="rotate(-90 60 60)"/>
+                        </svg>
+                        <div class="ev-ring-label">
+                            <span id="ev-percent">0</span><span class="ev-unit">%</span>
+                        </div>
+                    </div>
+                    <div class="ev-stats">
+                        <div class="ev-stat"><span class="ev-stat-label">Current</span><span id="ev-current">0 L</span></div>
+                        <div class="ev-stat"><span class="ev-stat-label">Capacity</span><span id="ev-capacity">0 L</span></div>
+                        <div class="ev-stat"><span class="ev-stat-label">Cost/L</span><span id="ev-price">$0.00</span></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Charge Amount</label>
+                    <div class="slider-group">
+                        <input type="range" id="ev-slider" min="1" max="100" value="100" step="1" oninput="updateEvSlider()">
+                        <div class="slider-labels">
+                            <span id="ev-litres">0 L</span>
+                            <span id="ev-cost">$0.00</span>
+                        </div>
+                    </div>
+                    <div class="quick-fills">
+                        <button onclick="setEvFill(25)">25%</button>
+                        <button onclick="setEvFill(50)">50%</button>
+                        <button onclick="setEvFill(75)">75%</button>
+                        <button onclick="setEvFill(100)">Full</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Payment</label>
+                    <div class="option-row">
+                        <button class="option-btn selected" data-evpay="cash" onclick="selectEvPayment('cash')">Cash</button>
+                        <button class="option-btn" data-evpay="bank" onclick="selectEvPayment('bank')">Bank</button>
+                    </div>
+                </div>
+
+                <button id="ev-charge-btn" class="action-btn ev-btn" onclick="startCharging()">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+                    Start Charging
+                </button>
+            </div>
+        </div>
+
         <!-- REFINERY STOCK PANEL -->
         <div id="refinery-panel" class="panel hidden">
             <div class="panel-header">
