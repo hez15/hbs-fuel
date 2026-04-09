@@ -121,6 +121,10 @@ end
 
 local function handleCharge(stationId, chargerCoords)
     local ped = PlayerPedId()
+    if IsPedInAnyVehicle(ped, false) then
+        HBSFuelNotify('Exit the vehicle to charge.', 'error')
+        return
+    end
     local vehicle = lib.getClosestVehicle(GetEntityCoords(ped), 8.0, true)
     if not vehicle or vehicle == 0 or not isElectricVehicle(vehicle) then
         HBSFuelNotify('No electric vehicle nearby.', 'error')
@@ -232,7 +236,9 @@ CreateThread(function()
                         icon = 'fa-solid fa-bolt',
                         label = 'Charge Electric Vehicle',
                         canInteract = function()
-                            local veh = lib.getClosestVehicle(GetEntityCoords(PlayerPedId()), 8.0, true)
+                            local ped = PlayerPedId()
+                            if IsPedInAnyVehicle(ped, false) then return false end
+                            local veh = lib.getClosestVehicle(GetEntityCoords(ped), 8.0, true)
                             return veh and veh ~= 0 and isElectricVehicle(veh)
                         end,
                         onSelect = function()
