@@ -1,7 +1,7 @@
 local stationBlips = {}
 
 CreateThread(function()
-    -- Station blips
+    -- Station blips (grouped under one legend entry)
     for stationId, station in pairs(Stations) do
         local isAviation = false
         for _, ft in ipairs(station.supports or {}) do
@@ -11,11 +11,12 @@ CreateThread(function()
         local blip = AddBlipForCoord(station.coords.x, station.coords.y, station.coords.z)
         SetBlipSprite(blip, isAviation and 423 or 361)
         SetBlipDisplay(blip, 4)
-        SetBlipScale(blip, 0.7)
+        SetBlipScale(blip, 0.65)
         SetBlipColour(blip, isAviation and 3 or 1)
         SetBlipAsShortRange(blip, true)
+        SetBlipCategory(blip, 10)
         BeginTextCommandSetBlipName('STRING')
-        AddTextComponentSubstringPlayerName(station.label)
+        AddTextComponentSubstringPlayerName(isAviation and 'Aviation Fuel' or 'Gas Station')
         EndTextCommandSetBlipName(blip)
         stationBlips[#stationBlips + 1] = blip
     end
@@ -25,11 +26,12 @@ CreateThread(function()
         local blip = AddBlipForCoord(shop.coords.x, shop.coords.y, shop.coords.z)
         SetBlipSprite(blip, 446)
         SetBlipDisplay(blip, 4)
-        SetBlipScale(blip, 0.7)
+        SetBlipScale(blip, 0.65)
         SetBlipColour(blip, 17)
         SetBlipAsShortRange(blip, true)
+        SetBlipCategory(blip, 10)
         BeginTextCommandSetBlipName('STRING')
-        AddTextComponentSubstringPlayerName(shop.label)
+        AddTextComponentSubstringPlayerName('Mechanic Shop')
         EndTextCommandSetBlipName(blip)
         stationBlips[#stationBlips + 1] = blip
     end
@@ -39,11 +41,12 @@ CreateThread(function()
         local blip = AddBlipForCoord(refinery.coords.x, refinery.coords.y, refinery.coords.z)
         SetBlipSprite(blip, 436)
         SetBlipDisplay(blip, 4)
-        SetBlipScale(blip, 0.8)
+        SetBlipScale(blip, 0.75)
         SetBlipColour(blip, 17)
         SetBlipAsShortRange(blip, true)
+        SetBlipCategory(blip, 10)
         BeginTextCommandSetBlipName('STRING')
-        AddTextComponentSubstringPlayerName(refinery.label)
+        AddTextComponentSubstringPlayerName('Refinery')
         EndTextCommandSetBlipName(blip)
         stationBlips[#stationBlips + 1] = blip
     end
