@@ -2,7 +2,7 @@ if not Config.Charging or not Config.Charging.Enabled then return end
 
 local chargingProps = {}
 local chargingState = {
-    active = false,
+    active = false,    -- nozzle grabbed
     vehicle = nil,
     stationId = nil,
     chargerCoords = nil,
@@ -23,6 +23,7 @@ local function clearChargingHose()
         StopAnimTask(ped, anim.dict, anim.clip, 1.0)
     end
     ClearPedSecondaryTask(ped)
+    ClearPedTasks(ped)
 
     if chargingState.rope then
         DeleteRope(chargingState.rope)
@@ -43,21 +44,23 @@ local function clearChargingHose()
     chargingState.prop = nil
     chargingState.anchor = nil
     chargingState.rope = nil
+    chargingState.active = false
+    chargingState.vehicle = nil
+    chargingState.stationId = nil
+    chargingState.chargerCoords = nil
 end
 
 local function createChargingHose(anchorCoords)
-    clearChargingHose()
-
     local ped = PlayerPedId()
     local nozzleCfg = Config.IndustrialNozzle
     local nozzleHash = joaat(nozzleCfg.model or 'hei_prop_hei_hose_nozzle')
     RequestModel(nozzleHash)
     local timeout = GetGameTimer() + 5000
-    while not HasModelLoaded(nozzleHash) do Wait(0); if GetGameTimer() > timeout then return end end
+    while not HasModelLoaded(nozzleHash) do Wait(0); if GetGameTimer() > timeout then return false end end
 
     local pedCoords = GetEntityCoords(ped)
     local prop = CreateObject(nozzleHash, pedCoords.x, pedCoords.y, pedCoords.z + 0.2, true, true, false)
-    if not prop or prop == 0 then return end
+    if not prop or prop == 0 then return false end
 
     local bone = GetPedBoneIndex(ped, nozzleCfg.bone or 57005)
     local attach = nozzleCfg.offset or {}
@@ -116,34 +119,52 @@ local function createChargingHose(anchorCoords)
         while not HasAnimDictLoaded(anim.dict) do Wait(0); if GetGameTimer() > timeout then break end end
         TaskPlayAnim(ped, anim.dict, anim.clip, 2.0, 2.0, -1, anim.flag or 49, 0.0, false, false, false)
     end
+
+    return true
 end
 
-local function handleCharge(stationId, chargerCoords)
+-- Step 1: Grab nozzle from charger
+local function grabChargingNozzle(stationId, chargerCoords)
     local ped = PlayerPedId()
     if IsPedInAnyVehicle(ped, false) then
-        HBSFuelNotify('Exit the vehicle to charge.', 'error')
+        HBSFuelNotify('Exit the vehicle first.', 'error')
         return
     end
 
-    local vehicle = lib.getClosestVehicle(GetEntityCoords(ped), 8.0, true)
-    if not vehicle or vehicle == 0 or not isElectricVehicle(vehicle) then
-        HBSFuelNotify('No electric vehicle nearby.', 'error')
+    if chargingState.active then
+        HBSFuelNotify('Return the charging cable first.', 'error')
+        return
+    end
+
+    if not createChargingHose(chargerCoords) then
+        HBSFuelNotify('Failed to grab charging cable.', 'error')
         return
     end
 
     chargingState.active = true
-    chargingState.vehicle = vehicle
     chargingState.stationId = stationId
     chargingState.chargerCoords = chargerCoords
 
-    -- Open the same refuel NUI used for normal pumps
+    HBSFuelNotify('Charging cable grabbed. Target an electric vehicle to charge.', 'success')
+end
+
+-- Step 2: Target vehicle to open refuel NUI
+local function openChargeOnVehicle(vehicle)
+    if not chargingState.active then return end
+    if not DoesEntityExist(vehicle) or not isElectricVehicle(vehicle) then
+        HBSFuelNotify('This vehicle is not electric.', 'error')
+        return
+    end
+
+    chargingState.vehicle = vehicle
+
     local currentFuel = GetCachedVehicleFuel(vehicle) or 0.0
     local tankCapacity = HBSFuel.GetTankCapacity(vehicle)
     local pricePerLitre = Config.Charging.PricePerLitre or 1.80
 
     SendNUIMessage({
         action = 'openRefuel',
-        stationId = stationId,
+        stationId = chargingState.stationId,
         stationLabel = 'EV Charging',
         fuelTypes = {
             { value = 'electric', label = 'Electric', price = pricePerLitre },
@@ -154,29 +175,24 @@ local function handleCharge(stationId, chargerCoords)
     SetNuiFocus(true, true)
 end
 
--- Intercept the NUI confirm for EV charging
+-- Handle NUI confirm for electric
 RegisterNUICallback('nuiConfirmRefuel', function(data, cb)
-    if not chargingState.active then return end
-    if data.fuelType ~= 'electric' then return end
+    if not chargingState.active or data.fuelType ~= 'electric' then return end
 
     cb('ok')
     SetNuiFocus(false, false)
 
     local vehicle = chargingState.vehicle
     local stationId = chargingState.stationId
-    local chargerCoords = chargingState.chargerCoords
 
     if not vehicle or not DoesEntityExist(vehicle) then
-        chargingState.active = false
+        clearChargingHose()
         return
     end
 
     local litres = tonumber(data.litres) or 0.0
     local payment = data.paymentMethod or 'cash'
-    if litres <= 0 then
-        chargingState.active = false
-        return
-    end
+    if litres <= 0 then return end
 
     local currentFuel = GetCachedVehicleFuel(vehicle) or 0.0
     local capacity = HBSFuel.GetTankCapacity(vehicle)
@@ -185,11 +201,8 @@ RegisterNUICallback('nuiConfirmRefuel', function(data, cb)
     local result = lib.callback.await('hbs-fuel:server:startCharging', false, stationId, 'electric', litres, payment)
     if not result or not result.ok then
         HBSFuelNotify(result and result.message or 'Charging failed.', 'error')
-        chargingState.active = false
         return
     end
-
-    createChargingHose(chargerCoords)
 
     local chargeRate = Config.Charging.ChargeRate or 2.0
     local duration = math.ceil(litres / chargeRate) * 1000
@@ -200,10 +213,6 @@ RegisterNUICallback('nuiConfirmRefuel', function(data, cb)
         canCancel = true,
         disable = { car = true, move = true, combat = true }
     })
-
-    clearChargingHose()
-    chargingState.active = false
-    chargingState.vehicle = nil
 
     if ok then
         local finalFuel = math.min(currentFuel + litres, capacity)
@@ -218,9 +227,31 @@ RegisterNUICallback('nuiConfirmRefuel', function(data, cb)
     else
         HBSFuelNotify('Charging cancelled.', 'inform')
     end
+
+    clearChargingHose()
 end)
 
--- ── PROP SPAWNING + TARGETS ──
+-- ── VEHICLE TARGET (step 2) ──
+
+CreateThread(function()
+    Wait(2500)
+
+    exports.ox_target:addGlobalVehicle({
+        {
+            name = 'hbs_fuel_ev_charge_vehicle',
+            icon = 'fa-solid fa-bolt',
+            label = 'Charge Vehicle',
+            canInteract = function(entity)
+                return chargingState.active and isElectricVehicle(entity)
+            end,
+            onSelect = function(data)
+                openChargeOnVehicle(data.entity)
+            end,
+        },
+    })
+end)
+
+-- ── CHARGER PROP SPAWNING + GRAB TARGET (step 1) ──
 
 CreateThread(function()
     Wait(2000)
@@ -247,17 +278,26 @@ CreateThread(function()
                 local chargerCoords = vec3(cp.x, cp.y, cp.z)
                 exports.ox_target:addLocalEntity(prop, {
                     {
-                        name = ('hbs_fuel_charger_%s'):format(stationId),
-                        icon = 'fa-solid fa-bolt',
-                        label = 'Charge Electric Vehicle',
+                        name = ('hbs_fuel_charger_grab_%s'):format(stationId),
+                        icon = 'fa-solid fa-plug',
+                        label = 'Grab Charging Cable',
                         canInteract = function()
-                            local ped = PlayerPedId()
-                            if IsPedInAnyVehicle(ped, false) then return false end
-                            local veh = lib.getClosestVehicle(GetEntityCoords(ped), 8.0, true)
-                            return veh and veh ~= 0 and isElectricVehicle(veh)
+                            return not chargingState.active and not IsPedInAnyVehicle(PlayerPedId(), false)
                         end,
                         onSelect = function()
-                            handleCharge(stationId, chargerCoords)
+                            grabChargingNozzle(stationId, chargerCoords)
+                        end
+                    },
+                    {
+                        name = ('hbs_fuel_charger_return_%s'):format(stationId),
+                        icon = 'fa-solid fa-rotate-left',
+                        label = 'Return Charging Cable',
+                        canInteract = function()
+                            return chargingState.active
+                        end,
+                        onSelect = function()
+                            clearChargingHose()
+                            HBSFuelNotify('Charging cable returned.', 'success')
                         end
                     },
                 })
@@ -266,6 +306,29 @@ CreateThread(function()
     end
 
     SetModelAsNoLongerNeeded(hash)
+end)
+
+-- ── CLEANUP LOOP ──
+
+CreateThread(function()
+    while true do
+        if chargingState.active then
+            local ped = PlayerPedId()
+            if IsPedInAnyVehicle(ped, false) or IsEntityDead(ped) or IsPedRagdoll(ped) then
+                clearChargingHose()
+                HBSFuelNotify('Charging cable returned.', 'inform')
+            elseif chargingState.chargerCoords then
+                local dist = #(GetEntityCoords(ped) - chargingState.chargerCoords)
+                if dist > (Config.Tanker.HoseMaxDistance or 15.0) then
+                    clearChargingHose()
+                    HBSFuelNotify('Too far from charger — cable returned.', 'error')
+                end
+            end
+            Wait(350)
+        else
+            Wait(750)
+        end
+    end
 end)
 
 AddEventHandler('onResourceStop', function(resource)
