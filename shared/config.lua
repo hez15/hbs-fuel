@@ -333,6 +333,7 @@ Config.Items = {
 
 Config.Ownership = {
     Enabled = true,
+    UseNonstopBanking = true,   -- revenue goes to nonstop-banking business account
     OwnerRevenueCut = 0.70,
     MaxPriceMultiplier = 2.0,
     MinPriceMultiplier = 0.5,

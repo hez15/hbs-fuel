@@ -216,8 +216,21 @@ function openOwnerPanel(data) {
     window._payoutConfig = data.payoutConfig || null;
 
     document.getElementById('owner-station-name').textContent = data.label || 'Station Dashboard';
-    document.getElementById('dash-revenue-available').textContent = Math.floor(data.revenueAvailable || 0);
-    document.getElementById('dash-revenue-total').textContent = Math.floor(data.revenueTotal || 0);
+    document.getElementById('dash-revenue-available').textContent = '$' + Math.floor(data.revenueAvailable || 0).toLocaleString();
+    document.getElementById('dash-revenue-total').textContent = '$' + Math.floor(data.revenueTotal || 0).toLocaleString();
+
+    // Show business account info if nonstop-banking is active
+    const withdrawBtn = document.querySelector('.revenue-card .dash-btn');
+    if (data.useNonstopBanking && data.businessId) {
+        if (withdrawBtn) {
+            withdrawBtn.textContent = 'Via Business Account';
+            withdrawBtn.disabled = true;
+            withdrawBtn.title = 'Revenue goes directly to your nonstop-banking business account';
+        }
+    } else if (withdrawBtn) {
+        withdrawBtn.textContent = 'Withdraw';
+        withdrawBtn.disabled = false;
+    }
     document.getElementById('dash-price-mult').textContent = ownerState.priceMultiplier.toFixed(2);
 
     const priceSlider = document.getElementById('price-slider');
