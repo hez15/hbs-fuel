@@ -127,9 +127,7 @@ Config.IndustrialNozzle = {
 Config.UnloadProps = {
     Enabled = true,
     Props = {
-        { model = 'prop_gas_tank_02a', offset = vec3(0.0, 0.0, -0.5) },
-        { model = 'prop_barrier_work05', offset = vec3(2.0, 0.0, -0.5) },
-        { model = 'prop_barrier_work05', offset = vec3(-2.0, 0.0, -0.5) },
+        { model = 'po1_02_talklaugh_pipe', offset = vec3(0.0, 0.0, 0.0) },
     },
 }
 
@@ -270,12 +268,12 @@ Config.Usage = {
 
 Config.RefineryRecipes = {
     crude_basic = {
-        input = { crude = 100.0 },
+        input = { crude = 1000.0 },
         output = {
-            regular = 48.0,   -- ~5% processing loss for realism
-            diesel = 18.0,
-            jetfuel = 14.0,
-            motoroil = 8.0,   -- total output: 88L from 100L crude
+            regular = 480.0,
+            diesel = 180.0,
+            jetfuel = 140.0,
+            motoroil = 80.0,   -- total output: 880L from 1000L crude
         },
         processTime = 240,    -- 4 minutes per batch
     }
