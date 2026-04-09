@@ -288,11 +288,12 @@ lib.callback.register('hbs-fuel:server:purchaseEntity', function(source, entityT
 
     local businessId = nil
     if Config.Ownership.UseNonstopBanking then
+        local stationLabel = Stations[entityId] and Stations[entityId].label or entityId
         local ok, id = pcall(function()
-            return exports['nonstop-banking']:CreateBusinessAccount(
-                ('fuel_%s_%s'):format(entityType, entityId),
-                getPlayerName(source) .. ' Fuel Business'
-            )
+            return exports['nonstop-banking']:CreateBusinessAccount(citizenId, {
+                name = stationLabel,
+                ownerName = getPlayerName(source),
+            })
         end)
         if ok and id then
             businessId = id
