@@ -44,6 +44,16 @@ local function playCarryAnim(force)
 end
 
 local function clearHose()
+    local ped = PlayerPedId()
+
+    -- Stop animation FIRST
+    local anim = Config.NozzleCarryAnim
+    if anim and anim.dict and anim.clip then
+        StopAnimTask(ped, anim.dict, anim.clip, 1.0)
+    end
+    ClearPedSecondaryTask(ped)
+    ClearPedTasks(ped)
+
     if hoseState.rope then
         DeleteRope(hoseState.rope)
         hoseState.rope = nil
@@ -57,13 +67,27 @@ local function clearHose()
         DetachEntity(hoseState.prop, true, true)
         SetEntityAsMissionEntity(hoseState.prop, true, true)
         DeleteObject(hoseState.prop)
-        DeleteEntity(hoseState.prop)
+        Wait(0)
+        if DoesEntityExist(hoseState.prop) then
+            DeleteEntity(hoseState.prop)
+        end
     end
 
     if hoseState.anchorEntity and DoesEntityExist(hoseState.anchorEntity) then
         SetEntityAsMissionEntity(hoseState.anchorEntity, true, true)
         DeleteObject(hoseState.anchorEntity)
-        DeleteEntity(hoseState.anchorEntity)
+        if DoesEntityExist(hoseState.anchorEntity) then
+            DeleteEntity(hoseState.anchorEntity)
+        end
+    end
+
+    -- Fallback: remove any lingering hose prop attached to ped
+    local nozzleHash = joaat(Config.IndustrialNozzle.model or 'hei_prop_hei_hose_nozzle')
+    local stuck = GetClosestObjectOfType(GetEntityCoords(ped), 1.0, nozzleHash, false, false, false)
+    if stuck and stuck ~= 0 and IsEntityAttachedToEntity(stuck, ped) then
+        DetachEntity(stuck, true, true)
+        SetEntityAsMissionEntity(stuck, true, true)
+        DeleteObject(stuck)
     end
 
     hoseState.prop = nil
@@ -74,12 +98,6 @@ local function clearHose()
     hoseState.hoseType = nil
 
     TriggerServerEvent('hbs-fuel:server:syncHoseReturn')
-
-    local anim = Config.NozzleCarryAnim
-    if anim and anim.dict and anim.clip then
-        StopAnimTask(PlayerPedId(), anim.dict, anim.clip, 1.0)
-    end
-    ClearPedSecondaryTask(PlayerPedId())
 end
 
 local function createHose(anchorCoords, hoseType, refineryId)
@@ -943,8 +961,13 @@ end)
 CreateThread(function()
     while true do
         if hoseState.active and hoseState.anchorCoords then
-            local pedCoords = GetEntityCoords(PlayerPedId())
-            if #(pedCoords - hoseState.anchorCoords) > Config.Tanker.HoseMaxDistance then
+            local ped = PlayerPedId()
+            local pedCoords = GetEntityCoords(ped)
+
+            if IsPedInAnyVehicle(ped, false) or IsEntityDead(ped) or IsPedRagdoll(ped) then
+                clearHose()
+                HBSFuelNotify('Hose returned.', 'inform')
+            elseif #(pedCoords - hoseState.anchorCoords) > Config.Tanker.HoseMaxDistance then
                 clearHose()
                 HBSFuelNotify(Config.Notifications.IndustrialTooFar, 'error')
             else
@@ -1035,7 +1058,13 @@ RegisterNetEvent('hbs-fuel:client:syncHoseReturn', function(serverId)
         remoteHoseRopes[serverId] = nil
     end
     if remoteHoses[serverId] then
-        DeleteEntity(remoteHoses[serverId])
+        local obj = remoteHoses[serverId]
+        if DoesEntityExist(obj) then
+            DetachEntity(obj, true, true)
+            SetEntityAsMissionEntity(obj, true, true)
+            DeleteObject(obj)
+            if DoesEntityExist(obj) then DeleteEntity(obj) end
+        end
         remoteHoses[serverId] = nil
     end
 end)

@@ -679,7 +679,10 @@ CreateThread(function()
         if nozzleState.active and not isRefuelling then
             local ped = PlayerPedId()
             local pedCoords = GetEntityCoords(ped)
-            if not nozzleState.pumpCoords or #(pedCoords - nozzleState.pumpCoords) > Config.NozzleMaxDistance then
+
+            if IsPedInAnyVehicle(ped, false) or IsEntityDead(ped) or IsPedRagdoll(ped) then
+                clearNozzleState('Nozzle returned.', 'inform')
+            elseif not nozzleState.pumpCoords or #(pedCoords - nozzleState.pumpCoords) > Config.NozzleMaxDistance then
                 clearNozzleState(Config.Notifications.NozzleTooFar, 'error')
             else
                 if not nozzleVisual.prop or not DoesEntityExist(nozzleVisual.prop) then
