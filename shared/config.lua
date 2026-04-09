@@ -67,7 +67,7 @@ Config.Nozzles = {
         model = 'prop_cs_fuel_nozle',
     },
     Industrial = {
-        model = 'prop_hose_nozzle',
+        model = 'po1_02_talklaugh_pipe',
     }
 }
 
@@ -101,7 +101,7 @@ Config.NozzleRope = {
 
 
 Config.IndustrialNozzle = {
-    model = 'prop_hose_nozzle',
+    model = 'po1_02_talklaugh_pipe',
     bone = 57005,
     offset = {
         x = 0.13,
@@ -120,6 +120,7 @@ Config.IndustrialNozzle = {
         timeMultiplier = 1.0,
         breakable = false,
         anchorOffset = { x = 0.0, y = 0.0, z = 1.15 },
+        anchorModel = 'prop_xm_bigairhosebit1',
     },
 }
 
