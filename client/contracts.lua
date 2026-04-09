@@ -29,7 +29,7 @@ local function loadVehicleModel(model)
     return hash
 end
 
-RegisterNetEvent('hbs-fuel:client:spawnJobVehicle', function(contractType, spawnCoords)
+RegisterNetEvent('hbs-fuel:client:spawnJobVehicle', function(contractType, truckSpawn, trailerSpawn)
     cleanupJobVehicles()
 
     local cfg = Config.JobVehicles and Config.JobVehicles[contractType]
@@ -48,16 +48,14 @@ RegisterNetEvent('hbs-fuel:client:spawnJobVehicle', function(contractType, spawn
         return
     end
 
-    local x, y, z, w = spawnCoords.x, spawnCoords.y, spawnCoords.z, spawnCoords.w or 0.0
-
-    local truck = CreateVehicle(truckHash, x, y, z, w, true, false)
+    local tx, ty, tz, tw = truckSpawn.x, truckSpawn.y, truckSpawn.z, truckSpawn.w or 0.0
+    local truck = CreateVehicle(truckHash, tx, ty, tz, tw, true, false)
     SetEntityAsMissionEntity(truck, true, true)
     SetVehicleOnGroundProperly(truck)
     SetModelAsNoLongerNeeded(truckHash)
 
-    local behindX = x - math.sin(math.rad(w)) * 12.0
-    local behindY = y + math.cos(math.rad(w)) * 12.0
-    local trailer = CreateVehicle(trailerHash, behindX, behindY, z, w, true, false)
+    local rx, ry, rz, rw = trailerSpawn.x, trailerSpawn.y, trailerSpawn.z, trailerSpawn.w or 0.0
+    local trailer = CreateVehicle(trailerHash, rx, ry, rz, rw, true, false)
     SetEntityAsMissionEntity(trailer, true, true)
     SetVehicleOnGroundProperly(trailer)
     SetModelAsNoLongerNeeded(trailerHash)

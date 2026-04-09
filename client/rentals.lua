@@ -40,7 +40,7 @@ local function hasActiveRental()
     return false
 end
 
-local function spawnRental(vehicleCfg, spawnCoords)
+local function spawnRental(vehicleCfg, truckSpawn, trailerSpawn)
     if hasActiveRental() then
         HBSFuelNotify('You already have an active rental. Return it first.', 'error')
         return
@@ -54,7 +54,6 @@ local function spawnRental(vehicleCfg, spawnCoords)
     end
 
     rentalCost = price
-    local x, y, z, w = spawnCoords.x, spawnCoords.y, spawnCoords.z, spawnCoords.w or 0.0
 
     if vehicleCfg.truck and vehicleCfg.trailer then
         local truckHash = loadVehicleModel(vehicleCfg.truck)
@@ -69,14 +68,14 @@ local function spawnRental(vehicleCfg, spawnCoords)
             return
         end
 
-        local truck = CreateVehicle(truckHash, x, y, z, w, true, false)
+        local tx, ty, tz, tw = truckSpawn.x, truckSpawn.y, truckSpawn.z, truckSpawn.w or 0.0
+        local truck = CreateVehicle(truckHash, tx, ty, tz, tw, true, false)
         SetEntityAsMissionEntity(truck, true, true)
         SetVehicleOnGroundProperly(truck)
         SetModelAsNoLongerNeeded(truckHash)
 
-        local behindX = x - math.sin(math.rad(w)) * 12.0
-        local behindY = y + math.cos(math.rad(w)) * 12.0
-        local trailer = CreateVehicle(trailerHash, behindX, behindY, z, w, true, false)
+        local rx, ry, rz, rw = trailerSpawn.x, trailerSpawn.y, trailerSpawn.z, trailerSpawn.w or 0.0
+        local trailer = CreateVehicle(trailerHash, rx, ry, rz, rw, true, false)
         SetEntityAsMissionEntity(trailer, true, true)
         SetVehicleOnGroundProperly(trailer)
         SetModelAsNoLongerNeeded(trailerHash)
@@ -86,6 +85,8 @@ local function spawnRental(vehicleCfg, spawnCoords)
 
         rentalBlip = AddBlipForEntity(truck)
     else
+        local spawn = vehicleCfg.model == 'tanker2' or vehicleCfg.model == 'tanker' and trailerSpawn or truckSpawn
+        local x, y, z, w = spawn.x, spawn.y, spawn.z, spawn.w or 0.0
         local hash = loadVehicleModel(vehicleCfg.model)
         if not hash then
             HBSFuelNotify('Failed to load vehicle model.', 'error')
@@ -128,7 +129,7 @@ local function returnRental()
     HBSFuelNotify(('Rental returned. Refund: $%d'):format(refund), 'success')
 end
 
-local function openRentalMenu(spawnCoords)
+local function openRentalMenu(truckSpawn, trailerSpawn)
     local vehicles = Config.Rentals.Vehicles or {}
     local options = {}
 
@@ -138,7 +139,7 @@ local function openRentalMenu(spawnCoords)
             description = ('$%s'):format(veh.price),
             icon = veh.truck and 'fa-solid fa-truck-moving' or 'fa-solid fa-truck',
             onSelect = function()
-                spawnRental(veh, spawnCoords)
+                spawnRental(veh, truckSpawn, trailerSpawn)
             end,
         }
     end
@@ -197,7 +198,7 @@ local function spawnRentalNPCs()
                 icon = 'fa-solid fa-truck',
                 label = loc.label or 'Vehicle Rental',
                 onSelect = function()
-                    openRentalMenu(loc.spawnPoint)
+                    openRentalMenu(loc.truckSpawn, loc.trailerSpawn)
                 end
             },
         })

@@ -402,7 +402,8 @@ Config.Rentals = {
         {
             label = 'Vehicle Rental',
             coords = vec4(1642.0, -1680.0, 111.48, 45.0),
-            spawnPoint = vec4(1638.0, -1675.0, 111.48, 45.0),
+            truckSpawn = vec4(1648.49, -1682.38, 111.36, 352.98),
+            trailerSpawn = vec4(1649.02, -1697.64, 111.27, 353.05),
             model = 's_m_y_construct_01',
         },
     },
