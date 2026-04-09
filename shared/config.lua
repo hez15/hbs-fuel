@@ -38,6 +38,7 @@ Config.RefuelProgressMsPerLitre = 450
 Config.PassiveDemandInterval = 600     -- 10 minutes between demand ticks
 Config.PassiveDemandBaseLitres = 25.0  -- gentler drain to avoid constant refill contracts
 Config.AllowFuelWithoutStock = false
+Config.RestartMinFuelPercent = 0.10    -- on restart, fill stations to 10% if below
 Config.AllowUnmappedStations = true
 Config.UnmappedStationSupportedFuelTypes = { 'regular', 'diesel' }
 
@@ -219,7 +220,36 @@ Config.VehicleFuelRules = {
         shamal = { 'jetfuel' },
         swift = { 'jetfuel' },
         volatus = { 'jetfuel' },
+
+        -- electric vehicles
+        airtug = { 'electric' },
+        caddy = { 'electric' },
+        caddy2 = { 'electric' },
+        caddy3 = { 'electric' },
+        cyclone = { 'electric' },
+        cyclone2 = { 'electric' },
+        imorgon = { 'electric' },
+        khamelion = { 'electric' },
+        neon = { 'electric' },
+        raiden = { 'electric' },
+        surge = { 'electric' },
+        tezeract = { 'electric' },
+        voltic = { 'electric' },
+        voltic2 = { 'electric' },
     }
+}
+
+Config.Charging = {
+    Enabled = true,
+    ChargeRate = 2.0,           -- litres per second while charging
+    PricePerLitre = 1.80,
+    Locations = {
+        { coords = vec3(-70.98, -1761.79, 29.53), heading = 0.0 },
+        { coords = vec3(267.42, -1261.52, 29.29), heading = 0.0 },
+        { coords = vec3(-709.96, -904.17, 19.22), heading = 0.0 },
+        { coords = vec3(-2555.0, 2334.0, 33.08), heading = 0.0 },
+    },
+    PropModel = 'bzzz_pumps_charger_b',
 }
 
 Config.Features = {

@@ -34,6 +34,9 @@ window.addEventListener('message', function(event) {
         case 'openRefineryStock':
             openRefineryPanel(data);
             break;
+        case 'openCharging':
+            openChargingPanel(data);
+            break;
         case 'updateProgress':
             updateProgress(data);
             break;
@@ -411,6 +414,72 @@ function submitFuelOrder() {
             urgency: orderState.selectedUrgency,
         }),
     });
+}
+
+// ── EV CHARGING ──
+let evState = {
+    currentFuel: 0,
+    tankCapacity: 0,
+    pricePerLitre: 0,
+    payment: 'cash',
+    stationId: null,
+};
+
+function openChargingPanel(data) {
+    evState.currentFuel = data.currentFuel || 0;
+    evState.tankCapacity = data.tankCapacity || 100;
+    evState.pricePerLitre = data.pricePerLitre || 1.80;
+    evState.stationId = data.stationId;
+
+    const pct = evState.tankCapacity > 0 ? Math.round((evState.currentFuel / evState.tankCapacity) * 100) : 0;
+    document.getElementById('ev-percent').textContent = pct;
+    const circumference = 314.16;
+    document.getElementById('ev-ring-fill').style.strokeDashoffset = circumference - (circumference * pct / 100);
+    document.getElementById('ev-current').textContent = evState.currentFuel.toFixed(1) + ' L';
+    document.getElementById('ev-capacity').textContent = evState.tankCapacity.toFixed(1) + ' L';
+    document.getElementById('ev-price').textContent = '$' + evState.pricePerLitre.toFixed(2);
+
+    const needed = Math.max(evState.tankCapacity - evState.currentFuel, 0);
+    const slider = document.getElementById('ev-slider');
+    slider.max = Math.max(Math.ceil(needed), 1);
+    slider.value = Math.ceil(needed);
+    updateEvSlider();
+
+    showPanel('charging-panel');
+}
+
+function updateEvSlider() {
+    const val = parseFloat(document.getElementById('ev-slider').value);
+    document.getElementById('ev-litres').textContent = val.toFixed(1) + ' L';
+    document.getElementById('ev-cost').textContent = '$' + (val * evState.pricePerLitre).toFixed(2);
+}
+
+function setEvFill(pct) {
+    const needed = Math.max(evState.tankCapacity - evState.currentFuel, 0);
+    const slider = document.getElementById('ev-slider');
+    slider.value = Math.ceil(needed * pct / 100);
+    updateEvSlider();
+}
+
+function selectEvPayment(method) {
+    evState.payment = method;
+    document.querySelectorAll('[data-evpay]').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.evpay === method);
+    });
+}
+
+function startCharging() {
+    const litres = parseFloat(document.getElementById('ev-slider').value) || 0;
+    if (litres <= 0) return;
+    fetch('https://hbs-fuel/nuiStartCharging', {
+        method: 'POST',
+        body: JSON.stringify({
+            litres: litres,
+            payment: evState.payment,
+            stationId: evState.stationId,
+        }),
+    });
+    closePanel();
 }
 
 // ── REFINERY STOCK ──

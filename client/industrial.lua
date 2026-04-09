@@ -44,6 +44,16 @@ local function playCarryAnim(force)
 end
 
 local function clearHose()
+    local ped = PlayerPedId()
+
+    -- Stop animation FIRST
+    local anim = Config.NozzleCarryAnim
+    if anim and anim.dict and anim.clip then
+        StopAnimTask(ped, anim.dict, anim.clip, 1.0)
+    end
+    ClearPedSecondaryTask(ped)
+    ClearPedTasks(ped)
+
     if hoseState.rope then
         DeleteRope(hoseState.rope)
         hoseState.rope = nil
@@ -57,13 +67,27 @@ local function clearHose()
         DetachEntity(hoseState.prop, true, true)
         SetEntityAsMissionEntity(hoseState.prop, true, true)
         DeleteObject(hoseState.prop)
-        DeleteEntity(hoseState.prop)
+        Wait(0)
+        if DoesEntityExist(hoseState.prop) then
+            DeleteEntity(hoseState.prop)
+        end
     end
 
     if hoseState.anchorEntity and DoesEntityExist(hoseState.anchorEntity) then
         SetEntityAsMissionEntity(hoseState.anchorEntity, true, true)
         DeleteObject(hoseState.anchorEntity)
-        DeleteEntity(hoseState.anchorEntity)
+        if DoesEntityExist(hoseState.anchorEntity) then
+            DeleteEntity(hoseState.anchorEntity)
+        end
+    end
+
+    -- Fallback: remove any lingering hose prop attached to ped
+    local nozzleHash = joaat(Config.IndustrialNozzle.model or 'hei_prop_hei_hose_nozzle')
+    local stuck = GetClosestObjectOfType(GetEntityCoords(ped), 1.0, nozzleHash, false, false, false)
+    if stuck and stuck ~= 0 and IsEntityAttachedToEntity(stuck, ped) then
+        DetachEntity(stuck, true, true)
+        SetEntityAsMissionEntity(stuck, true, true)
+        DeleteObject(stuck)
     end
 
     hoseState.prop = nil
@@ -74,12 +98,6 @@ local function clearHose()
     hoseState.hoseType = nil
 
     TriggerServerEvent('hbs-fuel:server:syncHoseReturn')
-
-    local anim = Config.NozzleCarryAnim
-    if anim and anim.dict and anim.clip then
-        StopAnimTask(PlayerPedId(), anim.dict, anim.clip, 1.0)
-    end
-    ClearPedSecondaryTask(PlayerPedId())
 end
 
 local function createHose(anchorCoords, hoseType, refineryId)
@@ -253,6 +271,17 @@ local function getNearbySupportedTanker(coords, requiredRole)
     return bestVeh, bestDist, bestRole, bestModel, foundAnyTanker
 end
 
+local function resolveDropoffCoords(dropoffType, dropoffId)
+    if dropoffType == 'station' and Stations[dropoffId] then
+        return Stations[dropoffId].coords
+    elseif dropoffType == 'refinery' and Refineries[dropoffId] then
+        return Refineries[dropoffId].coords
+    elseif dropoffType == 'oilshop' and Config.OilShops and Config.OilShops[dropoffId] then
+        return Config.OilShops[dropoffId].coords
+    end
+    return nil
+end
+
 local function notifyNoTanker(requiredRole, foundAnyTanker)
     if foundAnyTanker then
         if requiredRole == 'crude' then
@@ -340,6 +369,18 @@ local function handleLoadCrude(refineryId, point)
 
     local result = lib.callback.await('hbs-fuel:server:loadCrudeTanker', false, getVehiclePlate(tanker), litres, modelName)
     HBSFuelNotify(result and result.message or 'Unable to load crude.', result and result.ok and 'success' or 'error')
+
+    if result and result.ok then
+        local contracts = lib.callback.await('hbs-fuel:server:getContracts', false)
+        if contracts and contracts.active then
+            local c = contracts.active
+            local coords = resolveDropoffCoords(c.dropoffType, c.dropoffId)
+            if coords then
+                SetNewWaypoint(coords.x, coords.y)
+                HBSFuelNotify('Waypoint set to delivery location.', 'success')
+            end
+        end
+    end
 end
 
 local function handleUnloadCrude(refineryId, point)
@@ -492,6 +533,19 @@ local function handleLoadRefined(refineryId, point)
 
     local result = lib.callback.await('hbs-fuel:server:loadRefinedProduct', false, refineryId, getVehiclePlate(tanker), fuelType, litres, modelName)
     HBSFuelNotify(result and result.message or 'Unable to load refined fuel.', result and result.ok and 'success' or 'error')
+
+    -- Auto-set waypoint to dropoff if player has an active contract
+    if result and result.ok then
+        local contracts = lib.callback.await('hbs-fuel:server:getContracts', false)
+        if contracts and contracts.active then
+            local c = contracts.active
+            local coords = resolveDropoffCoords(c.dropoffType, c.dropoffId)
+            if coords then
+                SetNewWaypoint(coords.x, coords.y)
+                HBSFuelNotify('Waypoint set to delivery location.', 'success')
+            end
+        end
+    end
 end
 
 local function handleUnloadStation(stationId, point)
@@ -612,7 +666,7 @@ local function registerRefineryTargets()
 
         if points.crudeSource and (not Config.Contracts or Config.Contracts.CrudeHaulEnabled ~= false) then
             exports.ox_target:addSphereZone({
-                coords = points.crudeSource,
+                coords = vec3(points.crudeSource.x, points.crudeSource.y, points.crudeSource.z + 1.0),
                 radius = 3.5,
                 debug = Config.Debug,
                 options = {
@@ -642,7 +696,7 @@ local function registerRefineryTargets()
 
         for index, coords in ipairs(points.crudeDelivery or {}) do
             exports.ox_target:addSphereZone({
-                coords = coords,
+                coords = vec3(coords.x, coords.y, coords.z + 1.0),
                 radius = 4.0,
                 debug = Config.Debug,
                 options = {
@@ -672,7 +726,7 @@ local function registerRefineryTargets()
 
         if points.valve then
             exports.ox_target:addSphereZone({
-                coords = points.valve,
+                coords = vec3(points.valve.x, points.valve.y, points.valve.z + 1.0),
                 radius = 2.5,
                 debug = Config.Debug,
                 options = {
@@ -690,7 +744,7 @@ local function registerRefineryTargets()
 
         if points.processStart then
             exports.ox_target:addSphereZone({
-                coords = points.processStart,
+                coords = vec3(points.processStart.x, points.processStart.y, points.processStart.z + 1.0),
                 radius = 3.0,
                 debug = Config.Debug,
                 options = {
@@ -716,7 +770,7 @@ local function registerRefineryTargets()
 
         if points.tankerLoad then
             exports.ox_target:addSphereZone({
-                coords = points.tankerLoad,
+                coords = vec3(points.tankerLoad.x, points.tankerLoad.y, points.tankerLoad.z + 1.0),
                 radius = 4.0,
                 debug = Config.Debug,
                 options = {
@@ -746,7 +800,7 @@ local function registerRefineryTargets()
 
         if points.oilBottling and Config.Features.MotorOil then
             exports.ox_target:addSphereZone({
-                coords = points.oilBottling,
+                coords = vec3(points.oilBottling.x, points.oilBottling.y, points.oilBottling.z + 1.0),
                 radius = 3.0,
                 debug = Config.Debug,
                 options = {
@@ -776,7 +830,7 @@ local function registerOilShopTargets()
     for shopId, shop in pairs(Config.OilShops or {}) do
         for index, coords in ipairs(shop.unloadPoints or {}) do
             exports.ox_target:addSphereZone({
-                coords = coords,
+                coords = vec3(coords.x, coords.y, coords.z + 1.0),
                 radius = 4.0,
                 debug = Config.Debug,
                 options = {
@@ -902,7 +956,7 @@ local function registerStationTargets()
 
         for index, coords in ipairs(unloadPoints) do
             exports.ox_target:addSphereZone({
-                coords = coords,
+                coords = vec3(coords.x, coords.y, coords.z + 1.0),
                 radius = 4.0,
                 debug = Config.Debug,
                 options = {
@@ -943,8 +997,13 @@ end)
 CreateThread(function()
     while true do
         if hoseState.active and hoseState.anchorCoords then
-            local pedCoords = GetEntityCoords(PlayerPedId())
-            if #(pedCoords - hoseState.anchorCoords) > Config.Tanker.HoseMaxDistance then
+            local ped = PlayerPedId()
+            local pedCoords = GetEntityCoords(ped)
+
+            if IsPedInAnyVehicle(ped, false) or IsEntityDead(ped) or IsPedRagdoll(ped) then
+                clearHose()
+                HBSFuelNotify('Hose returned.', 'inform')
+            elseif #(pedCoords - hoseState.anchorCoords) > Config.Tanker.HoseMaxDistance then
                 clearHose()
                 HBSFuelNotify(Config.Notifications.IndustrialTooFar, 'error')
             else
@@ -1035,7 +1094,13 @@ RegisterNetEvent('hbs-fuel:client:syncHoseReturn', function(serverId)
         remoteHoseRopes[serverId] = nil
     end
     if remoteHoses[serverId] then
-        DeleteEntity(remoteHoses[serverId])
+        local obj = remoteHoses[serverId]
+        if DoesEntityExist(obj) then
+            DetachEntity(obj, true, true)
+            SetEntityAsMissionEntity(obj, true, true)
+            DeleteObject(obj)
+            if DoesEntityExist(obj) then DeleteEntity(obj) end
+        end
         remoteHoses[serverId] = nil
     end
 end)

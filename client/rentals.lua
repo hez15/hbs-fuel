@@ -122,6 +122,26 @@ local function spawnRental(vehicleCfg, truckSpawn, trailerSpawn)
     HBSFuelNotify(('Rental spawned. Cost: $%d'):format(price), 'success')
 end
 
+local function returnSingleVehicle(index)
+    local veh = rentalVehicles[index]
+    if not veh or not DoesEntityExist(veh) then
+        table.remove(rentalVehicles, index)
+        return
+    end
+
+    SetEntityAsMissionEntity(veh, true, true)
+    DeleteVehicle(veh)
+    table.remove(rentalVehicles, index)
+
+    -- Remove corresponding blip
+    if rentalBlips[index] and DoesBlipExist(rentalBlips[index]) then
+        RemoveBlip(rentalBlips[index])
+    end
+    table.remove(rentalBlips, index)
+
+    HBSFuelNotify('Vehicle returned.', 'success')
+end
+
 local function returnRental()
     if #rentalVehicles == 0 then
         HBSFuelNotify('You have no active rentals.', 'error')
@@ -153,11 +173,25 @@ local function openRentalMenu(truckSpawn, trailerSpawn)
     end
 
     if #rentalVehicles > 0 then
+        for i, veh in ipairs(rentalVehicles) do
+            if DoesEntityExist(veh) then
+                local modelName = GetDisplayNameFromVehicleModel(GetEntityModel(veh))
+                options[#options + 1] = {
+                    title = ('Return: %s'):format(modelName or 'Vehicle'),
+                    description = 'Return this vehicle',
+                    icon = 'fa-solid fa-rotate-left',
+                    onSelect = function()
+                        returnSingleVehicle(i)
+                    end,
+                }
+            end
+        end
+
         local refund = math.floor(rentalCost * (Config.Rentals.ReturnRefund or 0.5))
         options[#options + 1] = {
             title = 'Return All Rentals',
             description = ('Refund: $%d'):format(refund),
-            icon = 'fa-solid fa-rotate-left',
+            icon = 'fa-solid fa-xmark',
             onSelect = function()
                 returnRental()
             end,

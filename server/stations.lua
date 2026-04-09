@@ -196,6 +196,32 @@ lib.callback.register('hbs-fuel:server:commitRefuelTick', function(source, stati
     }
 end)
 
+lib.callback.register('hbs-fuel:server:startCharging', function(source, stationId, fuelType, litres, paymentMethod)
+    litres = tonumber(litres) or 0.0
+    if litres <= 0.0 then
+        return { ok = false, message = 'Invalid charge amount.' }
+    end
+
+    local pricePerLitre = Config.Charging and Config.Charging.PricePerLitre or 1.80
+    local totalPrice = HBSFuel.Round(litres * pricePerLitre, 2)
+    local intPrice = math.ceil(totalPrice)
+
+    if not HBSFuelHasMoney(source, intPrice, paymentMethod or 'cash') then
+        return { ok = false, message = Config.Notifications.NotEnoughMoney }
+    end
+
+    if not HBSFuelRemoveMoney(source, intPrice, paymentMethod or 'cash', 'fuel_ev_charge') then
+        return { ok = false, message = 'Payment failed.' }
+    end
+
+    if stationId and AddOwnerRevenue then
+        local ownerCut = (Config.Ownership and Config.Ownership.OwnerRevenueCut or 0.70)
+        AddOwnerRevenue('station', stationId, HBSFuel.Round(totalPrice * ownerCut, 2))
+    end
+
+    return { ok = true, totalPrice = totalPrice, litres = litres }
+end)
+
 lib.callback.register('hbs-fuel:server:unloadTankerToStation', function(_, stationId, plate, litres, modelName)
     litres = tonumber(litres) or 0.0
     if not stationId or not plate or litres <= 0.0 then
