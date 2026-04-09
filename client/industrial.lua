@@ -714,24 +714,6 @@ local function registerRefineryTargets()
             })
         end
 
-        if points.contractsBoard then
-            exports.ox_target:addSphereZone({
-                coords = points.contractsBoard,
-                radius = 3.0,
-                debug = Config.Debug,
-                options = {
-                    {
-                        name = ('hbs_fuel_contracts_%s'):format(refineryId),
-                        icon = 'fa-solid fa-clipboard-list',
-                        label = 'Open Contracts Board',
-                        onSelect = function()
-                            TriggerEvent('hbs-fuel:client:openContractsBoard')
-                        end
-                    },
-                }
-            })
-        end
-
         if points.tankerLoad then
             exports.ox_target:addSphereZone({
                 coords = points.tankerLoad,
@@ -871,6 +853,31 @@ local function spawnUnloadProps()
                     PlaceObjectOnGroundProperly(prop)
                     FreezeEntityPosition(prop, true)
                     SetEntityCollision(prop, false, false)
+                    unloadProps[#unloadProps + 1] = prop
+                end
+                SetModelAsNoLongerNeeded(hash)
+            end
+        end
+    end
+
+    -- Refinery controller prop at processStart
+    for _, refinery in pairs(Refineries) do
+        local pts = refinery.points or {}
+        if pts.processStart then
+            local hash = joaat('p_rail_controller_s')
+            RequestModel(hash)
+            local timeout = GetGameTimer() + 5000
+            while not HasModelLoaded(hash) do
+                Wait(0)
+                if GetGameTimer() > timeout then break end
+            end
+            if HasModelLoaded(hash) then
+                local c = pts.processStart
+                local prop = CreateObject(hash, c.x, c.y, c.z, false, false, false)
+                if prop and prop ~= 0 then
+                    PlaceObjectOnGroundProperly(prop)
+                    FreezeEntityPosition(prop, true)
+                    SetEntityHeading(prop, 273.49)
                     unloadProps[#unloadProps + 1] = prop
                 end
                 SetModelAsNoLongerNeeded(hash)

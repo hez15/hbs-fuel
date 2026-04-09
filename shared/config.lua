@@ -312,9 +312,8 @@ Config.Contracts = {
     NPCs = {
         {
             label = 'Fuel Dispatch',
-            coords = vec4(1684.5, -1665.0, 110.44, 215.0),
+            coords = vec4(1736.58, -1621.27, 111.42, 106.33),
             model = 's_m_y_dockwork_01',
-            spawnPoint = vec4(1680.0, -1660.0, 110.44, 215.0),
         },
         {
             label = 'Fuel Dispatch',
@@ -402,9 +401,9 @@ Config.Rentals = {
     Locations = {
         {
             label = 'Vehicle Rental',
-            coords = vec4(1642.49, -1679.62, 111.15, 263.17),
-            truckSpawn = vec4(1648.49, -1682.38, 111.36, 352.98),
-            trailerSpawn = vec4(1649.02, -1697.64, 111.27, 353.05),
+            coords = vec4(1738.19, -1622.76, 111.42, 121.63),
+            truckSpawn = vec4(1728.38, -1635.41, 111.51, 101.48),
+            trailerSpawn = vec4(1736.73, -1633.59, 111.48, 97.61),
             model = 's_m_y_construct_01',
         },
     },
