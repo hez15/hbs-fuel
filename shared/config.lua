@@ -67,7 +67,7 @@ Config.Nozzles = {
         model = 'prop_cs_fuel_nozle',
     },
     Industrial = {
-        model = 'prop_hose_nozzle',
+        model = 'hei_prop_hei_hose_nozzle',
     }
 }
 
@@ -101,7 +101,7 @@ Config.NozzleRope = {
 
 
 Config.IndustrialNozzle = {
-    model = 'prop_hose_nozzle',
+    model = 'hei_prop_hei_hose_nozzle',
     bone = 57005,
     offset = {
         x = 0.13,
