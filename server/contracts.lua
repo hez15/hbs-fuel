@@ -315,17 +315,11 @@ lib.callback.register('hbs-fuel:server:acceptContract', function(source, contrac
 
     ActiveByPlayer[source] = contract.id
 
-    -- Spawn job vehicle at nearest NPC spawn point
-    local npcs = Config.Contracts and Config.Contracts.NPCs or {}
-    local spawnPoint = nil
-    for _, npc in ipairs(npcs) do
-        if npc.spawnPoint then
-            spawnPoint = npc.spawnPoint
-            break
-        end
-    end
-    if spawnPoint then
-        TriggerClientEvent('hbs-fuel:client:spawnJobVehicle', source, contract.type, spawnPoint)
+    -- Spawn job vehicle using rental spawn points
+    local rentals = Config.Rentals and Config.Rentals.Locations or {}
+    if #rentals > 0 then
+        local loc = rentals[1]
+        TriggerClientEvent('hbs-fuel:client:spawnJobVehicle', source, contract.type, loc.truckSpawn, loc.trailerSpawn)
     end
 
     return {
