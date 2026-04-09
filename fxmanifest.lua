@@ -37,7 +37,8 @@ client_scripts {
     'client/contracts.lua',
     'client/ownership.lua',
     'client/zones.lua',
-    'client/crime.lua'
+    'client/crime.lua',
+    'client/rentals.lua'
 }
 
 server_scripts {
