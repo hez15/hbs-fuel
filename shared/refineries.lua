@@ -24,6 +24,7 @@ Refineries = {
             valve = vec3(1661.34, -1685.59, 111.53),
             tankerLoad = vec3(1673.77, -1619.95, 111.48),
             contractsBoard = vec3(1684.5, -1665.0, 110.44),
+            oilBottling = vec3(1670.0, -1640.0, 111.48),
         }
     }
 }

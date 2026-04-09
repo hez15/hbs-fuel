@@ -1,12 +1,11 @@
 Stations = {
+    -- ── LTD GASOLINE ──
     ltd_little_seoul = {
         label = 'Little Seoul LTD',
         coords = vec3(-709.64, -905.17, 19.22),
         radius = 35.0,
         supports = { 'regular', 'diesel' },
-        unloadPoints = {
-            vec3(-715.0, -916.75, 19.22),
-        },
+        unloadPoints = { vec3(-715.0, -916.75, 19.22) },
         tanks = {
             regular = { current = 6500.0, max = 8000.0 },
             diesel = { current = 2200.0, max = 4000.0 },
@@ -20,9 +19,7 @@ Stations = {
         coords = vec3(-48.72, -1761.03, 29.42),
         radius = 35.0,
         supports = { 'regular', 'diesel' },
-        unloadPoints = {
-            vec3(-37.4, -1747.9, 29.3),
-        },
+        unloadPoints = { vec3(-37.4, -1747.9, 29.3) },
         tanks = {
             regular = { current = 7000.0, max = 9000.0 },
             diesel = { current = 2600.0, max = 4500.0 },
@@ -31,19 +28,294 @@ Stations = {
         demandMultiplier = 1.25,
         emergencyRefill = true,
     },
+    ltd_strawberry = {
+        label = 'Strawberry LTD',
+        coords = vec3(265.65, -1261.85, 29.29),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(258.0, -1268.0, 29.29) },
+        tanks = {
+            regular = { current = 6000.0, max = 8000.0 },
+            diesel = { current = 2000.0, max = 4000.0 },
+        },
+        priceMultiplier = 1.0,
+        demandMultiplier = 1.1,
+        emergencyRefill = true,
+    },
+    ltd_mirror_park = {
+        label = 'Mirror Park LTD',
+        coords = vec3(1163.09, -323.93, 69.21),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(1169.0, -330.0, 69.21) },
+        tanks = {
+            regular = { current = 5500.0, max = 7000.0 },
+            diesel = { current = 1800.0, max = 3500.0 },
+        },
+        priceMultiplier = 0.98,
+        demandMultiplier = 0.9,
+        emergencyRefill = true,
+    },
+    ltd_east_vinewood = {
+        label = 'East Vinewood LTD',
+        coords = vec3(1211.25, -1402.17, 35.22),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(1220.0, -1396.0, 35.22) },
+        tanks = {
+            regular = { current = 6000.0, max = 8000.0 },
+            diesel = { current = 2000.0, max = 4000.0 },
+        },
+        priceMultiplier = 1.0,
+        demandMultiplier = 1.0,
+        emergencyRefill = true,
+    },
+
+    -- ── RON ──
+    ron_little_seoul = {
+        label = 'Ron Little Seoul',
+        coords = vec3(-531.23, -1220.7, 18.46),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(-524.0, -1214.0, 18.46) },
+        tanks = {
+            regular = { current = 5500.0, max = 7500.0 },
+            diesel = { current = 2000.0, max = 3500.0 },
+        },
+        priceMultiplier = 0.95,
+        demandMultiplier = 1.0,
+        emergencyRefill = true,
+    },
+    ron_del_perro = {
+        label = 'Ron Del Perro',
+        coords = vec3(-1437.62, -276.75, 46.21),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(-1444.0, -270.0, 46.21) },
+        tanks = {
+            regular = { current = 5000.0, max = 7000.0 },
+            diesel = { current = 1800.0, max = 3500.0 },
+        },
+        priceMultiplier = 1.05,
+        demandMultiplier = 1.1,
+        emergencyRefill = true,
+    },
+    ron_paleto = {
+        label = 'Ron Paleto Bay',
+        coords = vec3(174.63, 6602.82, 31.87),
+        radius = 40.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(180.0, 6610.0, 31.87) },
+        tanks = {
+            regular = { current = 4000.0, max = 6000.0 },
+            diesel = { current = 1500.0, max = 3000.0 },
+        },
+        priceMultiplier = 1.1,
+        demandMultiplier = 0.5,
+        emergencyRefill = true,
+    },
+    ron_sandy_shores = {
+        label = 'Ron Sandy Shores',
+        coords = vec3(2005.59, 3773.73, 32.18),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(2012.0, 3780.0, 32.18) },
+        tanks = {
+            regular = { current = 3500.0, max = 5500.0 },
+            diesel = { current = 1500.0, max = 3000.0 },
+        },
+        priceMultiplier = 1.08,
+        demandMultiplier = 0.6,
+        emergencyRefill = true,
+    },
+    ron_harmony = {
+        label = 'Ron Harmony',
+        coords = vec3(1701.0, 6416.12, 32.76),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(1695.0, 6422.0, 32.76) },
+        tanks = {
+            regular = { current = 3000.0, max = 5000.0 },
+            diesel = { current = 1200.0, max = 2500.0 },
+        },
+        priceMultiplier = 1.12,
+        demandMultiplier = 0.4,
+        emergencyRefill = true,
+    },
+    ron_catfish_view = {
+        label = 'Ron Catfish View',
+        coords = vec3(49.41, 2778.79, 58.1),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(44.0, 2786.0, 58.1) },
+        tanks = {
+            regular = { current = 3200.0, max = 5000.0 },
+            diesel = { current = 1000.0, max = 2500.0 },
+        },
+        priceMultiplier = 1.1,
+        demandMultiplier = 0.45,
+        emergencyRefill = true,
+    },
+
+    -- ── GLOBE OIL ──
+    globe_downtown = {
+        label = 'Globe Oil Downtown',
+        coords = vec3(819.65, -1028.85, 26.4),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(812.0, -1035.0, 26.4) },
+        tanks = {
+            regular = { current = 6500.0, max = 8500.0 },
+            diesel = { current = 2500.0, max = 4500.0 },
+        },
+        priceMultiplier = 1.0,
+        demandMultiplier = 1.2,
+        emergencyRefill = true,
+    },
+    globe_tataviam = {
+        label = 'Globe Oil Tataviam',
+        coords = vec3(2581.56, 362.03, 108.47),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(2575.0, 370.0, 108.47) },
+        tanks = {
+            regular = { current = 4000.0, max = 6000.0 },
+            diesel = { current = 1500.0, max = 3000.0 },
+        },
+        priceMultiplier = 1.05,
+        demandMultiplier = 0.6,
+        emergencyRefill = true,
+    },
+
+    -- ── XERO ──
+    xero_la_mesa = {
+        label = 'Xero La Mesa',
+        coords = vec3(621.28, 268.82, 103.09),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(614.0, 262.0, 103.09) },
+        tanks = {
+            regular = { current = 5500.0, max = 7500.0 },
+            diesel = { current = 2000.0, max = 3500.0 },
+        },
+        priceMultiplier = 0.97,
+        demandMultiplier = 1.0,
+        emergencyRefill = true,
+    },
+    xero_murrieta_heights = {
+        label = 'Xero Murrieta Heights',
+        coords = vec3(1038.28, -1346.33, 30.25),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(1032.0, -1340.0, 30.25) },
+        tanks = {
+            regular = { current = 5000.0, max = 7000.0 },
+            diesel = { current = 1800.0, max = 3500.0 },
+        },
+        priceMultiplier = 0.98,
+        demandMultiplier = 0.9,
+        emergencyRefill = true,
+    },
+
+    -- ── FLYWHEELS ──
+    flywheels_vinewood = {
+        label = 'Flywheels Vinewood',
+        coords = vec3(-94.49, 6419.6, 31.49),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(-88.0, 6426.0, 31.49) },
+        tanks = {
+            regular = { current = 3500.0, max = 5500.0 },
+            diesel = { current = 1200.0, max = 2500.0 },
+        },
+        priceMultiplier = 1.1,
+        demandMultiplier = 0.5,
+        emergencyRefill = true,
+    },
+
+    -- ── MISC / HIGHWAY ──
+    gas_route68 = {
+        label = 'Route 68 Gas',
+        coords = vec3(1208.6, 2660.26, 37.9),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(1215.0, 2668.0, 37.9) },
+        tanks = {
+            regular = { current = 3000.0, max = 5000.0 },
+            diesel = { current = 1200.0, max = 2500.0 },
+        },
+        priceMultiplier = 1.08,
+        demandMultiplier = 0.5,
+        emergencyRefill = true,
+    },
+    gas_grapeseed = {
+        label = 'Grapeseed Gas',
+        coords = vec3(1786.32, 4596.4, 37.69),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(1792.0, 4602.0, 37.69) },
+        tanks = {
+            regular = { current = 3000.0, max = 5000.0 },
+            diesel = { current = 1000.0, max = 2500.0 },
+        },
+        priceMultiplier = 1.1,
+        demandMultiplier = 0.4,
+        emergencyRefill = true,
+    },
+    gas_richman_glen = {
+        label = 'Richman Glen Gas',
+        coords = vec3(-2096.24, -320.29, 13.17),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(-2103.0, -314.0, 13.17) },
+        tanks = {
+            regular = { current = 4500.0, max = 6500.0 },
+            diesel = { current = 1500.0, max = 3000.0 },
+        },
+        priceMultiplier = 1.08,
+        demandMultiplier = 0.7,
+        emergencyRefill = true,
+    },
+    gas_chumash = {
+        label = 'Chumash Gas',
+        coords = vec3(-2555.97, 2334.4, 33.08),
+        radius = 35.0,
+        supports = { 'regular', 'diesel' },
+        unloadPoints = { vec3(-2562.0, 2340.0, 33.08) },
+        tanks = {
+            regular = { current = 3500.0, max = 5500.0 },
+            diesel = { current = 1200.0, max = 2500.0 },
+        },
+        priceMultiplier = 1.06,
+        demandMultiplier = 0.55,
+        emergencyRefill = true,
+    },
+
+    -- ── AVIATION ──
     airport_aviation = {
         label = 'LSIA Aviation Fuel',
         coords = vec3(-1027.34, -2735.23, 13.76),
         radius = 60.0,
         supports = { 'jetfuel' },
-        unloadPoints = {
-            vec3(-1020.6, -2727.9, 13.76),
-        },
+        unloadPoints = { vec3(-1020.6, -2727.9, 13.76) },
         tanks = {
             jetfuel = { current = 15000.0, max = 25000.0 },
         },
         priceMultiplier = 1.15,
         demandMultiplier = 0.5,
+        emergencyRefill = true,
+    },
+    sandy_airfield = {
+        label = 'Sandy Shores Airfield',
+        coords = vec3(1747.25, 3237.76, 42.14),
+        radius = 50.0,
+        supports = { 'jetfuel' },
+        unloadPoints = { vec3(1754.0, 3244.0, 42.14) },
+        tanks = {
+            jetfuel = { current = 5000.0, max = 10000.0 },
+        },
+        priceMultiplier = 1.2,
+        demandMultiplier = 0.3,
         emergencyRefill = true,
     },
 }

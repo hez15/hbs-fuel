@@ -1,142 +1,162 @@
-# hbs-fuel v0.6.1
+# hbs-fuel v0.7.0
 
-QBX + ox_inventory fuel system with:
+QBX + ox_inventory fuel system with full industrial supply chain, contract jobs, ownership, and crime.
 
-- vehicle fuel usage and persistence
-- ox_target public pump refuelling
-- car nozzle visuals with networked carry prop and rope sync
-- refinery hose flow for crude and refined transfers
-- station stock and passive demand
-- refinery crude and product storage
-- motor oil packaging
-- tanker role separation
-- contract system with job board UI
-- station and refinery ownership with purchase flow and owner dashboard
+## Features
 
-## Current feature status
-
-### Working now
-- vehicle fuel drain while driving
-- litres-based tank system
-- fuel saved by plate
-- public pump flow: grab nozzle -> target vehicle -> refuel
-- public pump nozzle prop: `prop_cs_fuel_nozle`
-- refinery / industrial hose prop: `prop_hose_nozzle`
-- networked public nozzle carry prop and rope so nearby players see the hose
-- networked industrial hose carry prop and rope for refinery/tanker operations
-- cash / bank selection when refuelling
-- station stock usage with emergency fallback
-- passive demand drain
-- crude intake and refinery storage
-- refinery runtime state and batch processing
-- motor oil bottle / drum packaging
-- tanker role split:
-  - `tanker2` = crude only
-  - `tanker` = refined products only
-- contract system:
-  - job board UI with urgency color-coding and location names
-  - auto-waypoint on contract accept
-  - progress HUD during active delivery
-  - payout notification on completion
-  - refresh and cancel from the board
-  - contract board accessible from refinery/station ox_target and `/fuelcontracts` command
-- ownership system:
-  - purchase unowned stations and refineries
-  - owner dashboard with stock levels, revenue tracking, price adjustment
-  - revenue withdrawal to bank
-  - `/fuelproperties` command to view owned properties
-- dynamic pricing based on station stock levels
-- balanced fuel drain rates, prices, and contract payouts
+- **Vehicle fuel** — litres-based tank system, fuel drain while driving, saved by plate
+- **Public pumps** — ox_target refuelling with nozzle prop, rope sync, cash/bank payment
+- **Station stock** — passive demand drain, dynamic pricing, emergency refill fallback
+- **Refinery** — crude intake, batch processing (100L crude → 48L regular, 18L diesel, 14L jetfuel, 8L motor oil), valve + batch flow
+- **Tanker roles** — `tanker2` = crude, `tanker` = refined products (including motor oil)
+- **Motor oil** — bottling at refinery into bottles (2L) / drums (20L) with animation, tanker delivery to mechanic shops
+- **Mechanic shops** — Benny's and LS Customs receive motor oil deliveries, auto-generate contracts when stock is low
+- **Contracts** — NUI job board with urgency tiers, auto-generated station/crude/oil shop refill contracts, waypoints, progress tracking, payouts
+- **NPC dispatch** — dock worker NPCs at configurable locations open the contracts board and spawn job vehicles
+- **Job vehicles** — hauler + tanker trailer spawns on contract accept, blip on map, cleaned up on complete/cancel
+- **Ownership** — purchase stations, owner dashboard with revenue tracking, price adjustment, fuel ordering
+- **Crime** — siphon fuel from tankers, sell stolen fuel at black market drop-offs, police dispatch alerts
+- **Admin tools** — `fueladmin` command suite for inspecting/modifying state
 
 ## Install
 
-1. Place the folder in your resources, for example:
-   `resources/[hbs]/hbs-fuel`
-2. Import `sql/hbs-fuel.sql` into your database.
-3. Make sure these resources start before `hbs-fuel`:
+1. Place the folder in your resources (e.g. `resources/[hbs]/hbs-fuel`)
+2. Make sure these resources start before `hbs-fuel`:
    - `ox_lib`
    - `oxmysql`
    - `ox_inventory`
    - `ox_target`
    - `qbx_core`
-4. Add `ensure hbs-fuel` to your server config.
-5. Restart the server or `refresh` then `ensure hbs-fuel`.
+3. Add `ensure hbs-fuel` to your server config
+4. All database tables are created automatically on first start — no manual SQL import needed
+5. Register motor oil items in ox_inventory (see below)
+6. Set up ACE permissions (see below)
 
-## Update steps
+## ox_inventory Items
 
-When updating from an older version:
+These items must be registered in your ox_inventory items config for motor oil bottling and siphoning:
 
-1. Replace the resource files.
-2. Re-run `sql/hbs-fuel.sql` so missing tables are created (including the new `hbs_fuel_ownership` table).
-3. Check `shared/config.lua` for any new settings and merge your custom values back in.
-4. Confirm your station / refinery coords still match your setup.
-5. Review `Config.Ownership` settings and set station/refinery purchase prices for your economy.
+| Item Name | Label | Weight | Stack |
+|-----------|-------|--------|-------|
+| `motoroil_bottle` | Motor Oil Bottle | 200 | 20 |
+| `motoroil_drum` | Motor Oil Drum | 2000 | 5 |
+| `jerry_can_fuel` | Jerry Can (Fuel) | 1000 | 5 |
+| `jerry_can_empty` | Jerry Can (Empty) | 500 | 10 |
 
-## Important config notes
+## ACE Permissions
 
-### Public vs industrial nozzle props
-Public car pumps now use:
-- `Config.Nozzles.Vehicle.model = 'prop_cs_fuel_nozle'`
+hbs-fuel uses two ACE permissions to gate sensitive features:
 
-Industrial / refinery hose flow uses:
-- `Config.Nozzles.Industrial.model = 'prop_hose_nozzle'`
-- `Config.IndustrialNozzle.model = 'prop_hose_nozzle'`
+### `hbs-fuel.admin`
+**What it does:** Grants access to the `fueladmin` server command which can add fuel to stations, add crude to refineries, fill tankers, and inspect server state. Without this permission, the command is blocked.
 
-### Notifications
-Notifications are controlled by:
-- `Config.NotificationsEnabled`
-- `Config.NotifyTitle`
+**Why it's needed:** These commands bypass normal gameplay — they create fuel out of thin air. Restricting them to admins prevents players from exploiting the economy.
 
-### Tanker roles
-The default tanker role split is:
-- `tanker2` = crude
-- `tanker` = refined fuel
+```cfg
+add_ace group.admin hbs-fuel.admin allow
+```
 
-### Vehicle fuel compatibility
-Fuel usage by class / model is configured in:
-- `Config.VehicleFuelRules`
+### Police Dispatch (ps-dispatch)
 
-### Station stock
-Station stock and fallback behaviour are configured in:
-- `shared/stations.lua`
-- `Config.Features`
+Crime alerts (fuel siphoning, black market sales) integrate with **ps-dispatch** out of the box. When a crime occurs, a `CustomAlert` is sent with:
+- Dispatch code (`10-90` for fuel theft, `10-31` for suspicious sale)
+- Blip on the officer's map at the crime location
+- Description of the suspect's activity
 
-### Ownership
-Station and refinery ownership is configured in:
-- `Config.Ownership`
-- Set `Config.Ownership.Enabled = false` to disable the ownership system
-- Adjust `StationPrices` and `RefineryPrices` for your server economy
-- `OwnerRevenueCut` controls what percentage of fuel sales go to the owner (default 70%)
+**Config:**
+```lua
+Config.Crime.Dispatch = 'ps-dispatch'  -- uses exports['ps-dispatch']:CustomAlert()
+```
 
-## File map
+If you use a different dispatch system, set:
+```lua
+Config.Crime.Dispatch = 'custom'
+Config.Crime.DispatchEvent = 'your-dispatch:event'  -- fires TriggerEvent with (crimeType, coords)
+```
 
-- `shared/config.lua` - general settings and toggles
-- `shared/stations.lua` - station definitions and stock
-- `shared/refineries.lua` - refinery layout and storage
-- `client/pumps.lua` - public pump and nozzle flow
-- `client/industrial.lua` - refinery / tanker hose flow
-- `client/contracts.lua` - contracts job board UI
-- `client/ownership.lua` - ownership dashboard and purchase UI
-- `server/stations.lua` - station pricing / stock logic
-- `server/refinery.lua` - refinery batch logic
-- `server/contracts.lua` - contract generation and management
-- `server/ownership.lua` - ownership backend and revenue tracking
-- `server/payments.lua` - money add/remove/check helpers
-- `server/persistence.lua` - DB persistence
+If you don't use ACE groups, you can assign directly:
+```cfg
+add_principal identifier.license:abc123 group.admin
+```
 
-## Admin commands
+## Config Overview
 
-- `/fuel_refill_station [stationId] [fuelType] [litres]`
-- `/fuel_toggle_stock`
+| Section | File | Purpose |
+|---------|------|---------|
+| `Config.Tanker` | `shared/config.lua` | Tanker roles, search radius, timings |
+| `Config.Contracts` | `shared/config.lua` | Contract generation, payouts, NPCs, auto-refill threshold |
+| `Config.Ownership` | `shared/config.lua` | Station purchase prices, revenue cut, price range |
+| `Config.MotorOil` | `shared/config.lua` | Bottle/drum litres and bottling timings |
+| `Config.OilShops` | `shared/config.lua` | Mechanic shop locations and tank sizes |
+| `Config.JobVehicles` | `shared/config.lua` | Truck + trailer models per contract type |
+| `Config.Crime` | `shared/config.lua` | Siphon timing, black market locations, pay rate, police alerts |
+| `Stations` | `shared/stations.lua` | Station definitions, coords, stock, supported fuel types |
+| `Refineries` | `shared/refineries.lua` | Refinery layout, interaction points, storage |
+| `FuelTypes` | `shared/fueltypes.lua` | Fuel type definitions, prices, flags |
 
-## Player commands
+### Key toggles
 
-- `/fuelcontracts` - open the fuel contracts job board
-- `/fuelproperties` - view your owned fuel properties
+```lua
+Config.Features.MotorOil = true           -- enable/disable motor oil bottling
+Config.Contracts.Enabled = true           -- enable/disable contract system
+Config.Contracts.CrudeHaulEnabled = true  -- enable/disable crude haul contracts
+Config.Contracts.AutoRefillThreshold = 0.10  -- auto-create contracts below 10%
+Config.Ownership.Enabled = true           -- enable/disable station ownership
+Config.Crime.Enabled = true               -- enable/disable crime system
+Config.Crime.SiphonEnabled = true         -- enable/disable fuel siphoning
+Config.Crime.PoliceAlert = true           -- enable/disable police dispatch
+Config.NotificationsEnabled = true        -- enable/disable all notifications
+```
+
+## Admin Commands
+
+All gated behind `hbs-fuel.admin` ACE permission.
+
+| Command | Description |
+|---------|-------------|
+| `fueladmin addstock <stationId> <fuelType> [litres]` | Add fuel to a station tank |
+| `fueladmin addcrude <refineryId> [litres]` | Add crude oil to a refinery |
+| `fueladmin filltanker <plate> <fuelType> [litres]` | Fill a tanker by plate |
+| `fueladmin refinery <refineryId>` | Inspect refinery crude + product levels |
+| `fueladmin station <stationId>` | Inspect station fuel stock levels |
+
+## Player Commands
+
+| Command | Description |
+|---------|-------------|
+| `/fuelcontracts` | Open the fuel contracts job board |
+| `/fuelproperties` | View your owned fuel properties |
+
+## File Map
+
+| File | Purpose |
+|------|---------|
+| `shared/config.lua` | All configuration and toggles |
+| `shared/stations.lua` | Station definitions and stock |
+| `shared/refineries.lua` | Refinery layout and storage |
+| `shared/fueltypes.lua` | Fuel type definitions |
+| `client/pumps.lua` | Public pump nozzle flow |
+| `client/industrial.lua` | Refinery, tanker, oil shop hose flow + bottling + NPC spawning |
+| `client/contracts.lua` | Contract events + job vehicle spawning |
+| `client/nui.lua` | NUI panels (refuel, dashboard, contracts, refinery stock) |
+| `client/crime.lua` | Siphoning and black market targets |
+| `client/ownership.lua` | Ownership purchase and dashboard UI |
+| `server/stations.lua` | Station pricing and stock logic |
+| `server/refinery.lua` | Refinery batch processing + motor oil bottling |
+| `server/contracts.lua` | Contract generation, acceptance, completion |
+| `server/oilshops.lua` | Mechanic shop state and unload logic |
+| `server/crime.lua` | Siphon handler, black market sales, police dispatch |
+| `server/ownership.lua` | Ownership backend and revenue tracking |
+| `server/persistence.lua` | DB table creation and state persistence |
+| `server/payments.lua` | Money add/remove/check helpers |
+| `server/main.lua` | Nozzle sync, jerry can handler, admin commands |
 
 ## Notes
 
-- Nozzle and hose props are network-synced so other players can see them.
-- Rope visuals are now synced to nearby players for both public pumps and industrial hoses.
-- Fuel is stored internally in litres; native fuel level is just the visible gameplay representation.
-- Refinery processing has a ~12% loss (100L crude yields 88L of products) for economic realism.
+- All 8 database tables auto-create on resource start (no manual SQL import needed)
+- Nozzle and hose props are network-synced so other players see them
+- Fuel is stored internally in litres; native fuel level is the visible gameplay representation
+- Refinery has ~12% processing loss (100L crude → 88L products) for economic realism
+- Contracts auto-generate for stations below 10% stock and for crude haul minimums
+- Motor oil is a refinery byproduct — produced passively during crude batches
+- Crime alerts use ACE permissions by default, or can fire a custom event via `Config.Crime.DispatchEvent` for MDT integration

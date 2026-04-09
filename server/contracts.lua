@@ -251,6 +251,33 @@ local function ensureStationContracts()
     end
 end
 
+local function ensureOilShopContracts()
+    local cfg = getCfg()
+    if cfg.Enabled == false then return end
+
+    local threshold = cfg.AutoRefillThreshold or 0.10
+
+    for shopId, shop in pairs(OilShopState or {}) do
+        local tank = shop.tank
+        if tank and tank.max > 0 and (tank.current / tank.max) < threshold then
+            local litresNeeded = math.floor(tank.max * 0.75)
+            local urgency = (tank.current / tank.max) < 0.03 and 'critical' or 'high'
+            if not hasSimilarAvailable('refined', 'motoroil', 'oilshop', shopId) then
+                addContract({
+                    type = 'refined',
+                    product = 'motoroil',
+                    pickupType = 'refinery',
+                    pickupId = 'default_refinery',
+                    dropoffType = 'oilshop',
+                    dropoffId = shopId,
+                    litresRequired = litresNeeded,
+                    urgency = urgency,
+                })
+            end
+        end
+    end
+end
+
 RegisterNetEvent('hbs-fuel:server:contracts:stationNeedsRefill', function(stationId, fuelType, litresNeeded, urgency)
     createStationRefillContract(stationId, fuelType, litresNeeded, urgency)
 end)
@@ -287,6 +314,19 @@ lib.callback.register('hbs-fuel:server:acceptContract', function(source, contrac
     saveContract(contract)
 
     ActiveByPlayer[source] = contract.id
+
+    -- Spawn job vehicle at nearest NPC spawn point
+    local npcs = Config.Contracts and Config.Contracts.NPCs or {}
+    local spawnPoint = nil
+    for _, npc in ipairs(npcs) do
+        if npc.spawnPoint then
+            spawnPoint = npc.spawnPoint
+            break
+        end
+    end
+    if spawnPoint then
+        TriggerClientEvent('hbs-fuel:client:spawnJobVehicle', source, contract.type, spawnPoint)
+    end
 
     return {
         ok = true,
@@ -363,12 +403,13 @@ RegisterNetEvent('hbs-fuel:server:contracts:progressCrude', function(deliveredLi
     completeContractForSource(source, deliveredLitres)
 end)
 
-RegisterNetEvent('hbs-fuel:server:contracts:progressRefined', function(product, deliveredLitres, stationId)
+RegisterNetEvent('hbs-fuel:server:contracts:progressRefined', function(product, deliveredLitres, dropoffId)
     local source = source
     local contract = getActiveContractForSource(source)
     if not contract or contract.type ~= 'refined' then return end
     if contract.product ~= product then return end
-    if contract.dropoffType ~= 'station' or tostring(contract.dropoffId) ~= tostring(stationId) then return end
+    if tostring(contract.dropoffId) ~= tostring(dropoffId) then return end
+    if contract.dropoffType ~= 'station' and contract.dropoffType ~= 'oilshop' then return end
     completeContractForSource(source, deliveredLitres)
 end)
 
@@ -481,6 +522,7 @@ CreateThread(function()
 
     ensureCrudeContract()
     ensureStationContracts()
+    ensureOilShopContracts()
 end)
 
 CreateThread(function()
@@ -490,6 +532,7 @@ CreateThread(function()
         expireOldContracts()
         ensureCrudeContract()
         ensureStationContracts()
+        ensureOilShopContracts()
     end
 end)
 
