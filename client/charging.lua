@@ -13,44 +13,64 @@ local function isElectricVehicle(vehicle)
     return false
 end
 
-local function openChargingNUI(vehicle, stationId)
-    local currentFuel = GetCachedVehicleFuel(vehicle) or 0.0
-    local capacity = HBSFuel.GetTankCapacity(vehicle)
-
-    SendNUIMessage({
-        action = 'openCharging',
-        currentFuel = currentFuel,
-        tankCapacity = capacity,
-        pricePerLitre = Config.Charging.PricePerLitre or 1.80,
-        stationId = stationId,
-    })
-    SetNuiFocus(true, true)
-end
-
-RegisterNUICallback('nuiStartCharging', function(data, cb)
-    cb('ok')
-    SetNuiFocus(false, false)
-
+local function handleCharge(stationId)
     local ped = PlayerPedId()
-    local vehicle = lib.getClosestVehicle(GetEntityCoords(ped), 5.0, true)
+    local vehicle = lib.getClosestVehicle(GetEntityCoords(ped), 6.0, true)
     if not vehicle or vehicle == 0 or not isElectricVehicle(vehicle) then
         HBSFuelNotify('No electric vehicle nearby.', 'error')
         return
     end
 
-    local litres = tonumber(data.litres) or 0.0
-    if litres <= 0 then return end
-
     local currentFuel = GetCachedVehicleFuel(vehicle) or 0.0
     local capacity = HBSFuel.GetTankCapacity(vehicle)
     local needed = math.max(capacity - currentFuel, 0)
-    litres = math.min(litres, needed)
-    if litres <= 0 then
-        HBSFuelNotify('Vehicle is already full.', 'inform')
+
+    if needed <= 0.5 then
+        HBSFuelNotify('Vehicle is already fully charged.', 'inform')
         return
     end
 
-    local result = lib.callback.await('hbs-fuel:server:startCharging', false, data.stationId, 'electric', litres, data.payment or 'cash')
+    local pricePerLitre = Config.Charging.PricePerLitre or 1.80
+
+    local input = lib.inputDialog('EV Charging', {
+        {
+            type = 'slider',
+            label = 'Charge Amount (L)',
+            default = math.ceil(needed),
+            min = 1,
+            max = math.ceil(needed),
+            step = 1,
+        },
+        {
+            type = 'select',
+            label = 'Payment',
+            options = {
+                { label = 'Cash', value = 'cash' },
+                { label = 'Bank', value = 'bank' },
+            },
+            default = 'cash',
+        },
+    })
+
+    if not input then return end
+
+    local litres = tonumber(input[1]) or 0.0
+    local payment = input[2] or 'cash'
+    if litres <= 0 then return end
+
+    litres = math.min(litres, needed)
+    local estimatedCost = litres * pricePerLitre
+
+    local confirm = lib.alertDialog({
+        header = 'Confirm Charge',
+        content = ('Charge **%.0fL** for **$%.2f**?'):format(litres, estimatedCost),
+        centered = true,
+        cancel = true,
+    })
+
+    if confirm ~= 'confirm' then return end
+
+    local result = lib.callback.await('hbs-fuel:server:startCharging', false, stationId, 'electric', litres, payment)
     if not result or not result.ok then
         HBSFuelNotify(result and result.message or 'Charging failed.', 'error')
         return
@@ -59,16 +79,12 @@ RegisterNUICallback('nuiStartCharging', function(data, cb)
     local chargeRate = Config.Charging.ChargeRate or 2.0
     local duration = math.ceil(litres / chargeRate) * 1000
 
-    ShowRefuelProgress(litres, litres)
-
     local ok = lib.progressCircle({
         duration = duration,
-        label = 'Charging vehicle...',
+        label = ('Charging — %.0fL ($%.2f)'):format(litres, result.totalPrice or 0),
         canCancel = true,
         disable = { car = true, move = true, combat = true }
     })
-
-    HideRefuelProgress()
 
     if ok then
         local finalFuel = math.min(currentFuel + litres, capacity)
@@ -79,11 +95,11 @@ RegisterNUICallback('nuiStartCharging', function(data, cb)
             HBSFuelSaveFuelByPlate(plate, finalFuel)
         end
 
-        HBSFuelNotify(('Charged %.1fL for $%.2f.'):format(litres, result.totalPrice or 0), 'success')
+        HBSFuelNotify(('Charged %.0fL for $%.2f.'):format(litres, result.totalPrice or 0), 'success')
     else
         HBSFuelNotify('Charging cancelled.', 'inform')
     end
-end)
+end
 
 -- ── PROP SPAWNING + TARGETS ──
 
@@ -99,10 +115,8 @@ CreateThread(function()
     end
     if not HasModelLoaded(hash) then return end
 
-    local idx = 0
     for stationId, station in pairs(Stations) do
         if station.chargerPoint then
-            idx = idx + 1
             local cp = station.chargerPoint
             local prop = CreateObject(hash, cp.x, cp.y, cp.z, false, false, false)
             if prop and prop ~= 0 then
@@ -117,16 +131,11 @@ CreateThread(function()
                         icon = 'fa-solid fa-bolt',
                         label = 'Charge Electric Vehicle',
                         canInteract = function()
-                            local ped = PlayerPedId()
-                            local veh = lib.getClosestVehicle(GetEntityCoords(ped), 5.0, true)
+                            local veh = lib.getClosestVehicle(GetEntityCoords(PlayerPedId()), 6.0, true)
                             return veh and veh ~= 0 and isElectricVehicle(veh)
                         end,
                         onSelect = function()
-                            local ped = PlayerPedId()
-                            local veh = lib.getClosestVehicle(GetEntityCoords(ped), 5.0, true)
-                            if veh and veh ~= 0 then
-                                openChargingNUI(veh, stationId)
-                            end
+                            handleCharge(stationId)
                         end
                     },
                 })
