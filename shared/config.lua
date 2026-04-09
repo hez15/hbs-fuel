@@ -400,9 +400,9 @@ Config.Rentals = {
     Enabled = true,
     Locations = {
         {
-            label = 'Refinery Vehicle Rental',
-            coords = vec4(1675.0, -1650.0, 110.44, 180.0),
-            spawnPoint = vec4(1670.0, -1645.0, 110.44, 180.0),
+            label = 'Vehicle Rental',
+            coords = vec4(1642.0, -1680.0, 111.48, 45.0),
+            spawnPoint = vec4(1638.0, -1675.0, 111.48, 45.0),
             model = 's_m_y_construct_01',
         },
     },

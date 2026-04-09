@@ -1,4 +1,53 @@
+local stationBlips = {}
+
 CreateThread(function()
+    -- Station blips
+    for stationId, station in pairs(Stations) do
+        local isAviation = false
+        for _, ft in ipairs(station.supports or {}) do
+            if ft == 'jetfuel' then isAviation = true break end
+        end
+
+        local blip = AddBlipForCoord(station.coords.x, station.coords.y, station.coords.z)
+        SetBlipSprite(blip, isAviation and 423 or 361)
+        SetBlipDisplay(blip, 4)
+        SetBlipScale(blip, 0.7)
+        SetBlipColour(blip, isAviation and 3 or 1)
+        SetBlipAsShortRange(blip, true)
+        BeginTextCommandSetBlipName('STRING')
+        AddTextComponentSubstringPlayerName(station.label)
+        EndTextCommandSetBlipName(blip)
+        stationBlips[#stationBlips + 1] = blip
+    end
+
+    -- Oil shop blips
+    for _, shop in pairs(Config.OilShops or {}) do
+        local blip = AddBlipForCoord(shop.coords.x, shop.coords.y, shop.coords.z)
+        SetBlipSprite(blip, 446)
+        SetBlipDisplay(blip, 4)
+        SetBlipScale(blip, 0.7)
+        SetBlipColour(blip, 17)
+        SetBlipAsShortRange(blip, true)
+        BeginTextCommandSetBlipName('STRING')
+        AddTextComponentSubstringPlayerName(shop.label)
+        EndTextCommandSetBlipName(blip)
+        stationBlips[#stationBlips + 1] = blip
+    end
+
+    -- Refinery blips
+    for _, refinery in pairs(Refineries) do
+        local blip = AddBlipForCoord(refinery.coords.x, refinery.coords.y, refinery.coords.z)
+        SetBlipSprite(blip, 436)
+        SetBlipDisplay(blip, 4)
+        SetBlipScale(blip, 0.8)
+        SetBlipColour(blip, 17)
+        SetBlipAsShortRange(blip, true)
+        BeginTextCommandSetBlipName('STRING')
+        AddTextComponentSubstringPlayerName(refinery.label)
+        EndTextCommandSetBlipName(blip)
+        stationBlips[#stationBlips + 1] = blip
+    end
+
     if Config.Debug then
         for stationId, station in pairs(Stations) do
             print(('[hbs-fuel] station loaded: %s (%s)'):format(stationId, station.label))
