@@ -127,7 +127,7 @@ Config.IndustrialNozzle = {
 Config.UnloadProps = {
     Enabled = true,
     Props = {
-        { model = 'po1_02_talklaugh_pipe', offset = vec3(0.0, 0.0, 0.0) },
+        { model = 'prop_oil_wellhead_01', offset = vec3(0.0, 0.0, 0.0) },
     },
 }
 
