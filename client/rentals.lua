@@ -2,7 +2,7 @@ if not Config.Rentals or not Config.Rentals.Enabled then return end
 
 local rentalNPCs = {}
 local rentalVehicles = {}
-local rentalBlip = nil
+local rentalBlips = {}
 local rentalCost = 0
 
 local function loadVehicleModel(model)
@@ -17,6 +17,18 @@ local function loadVehicleModel(model)
     return hash
 end
 
+local function giveVehicleKeys(vehicle)
+    local plate = GetVehicleNumberPlateText(vehicle)
+    if not plate then return end
+
+    pcall(function()
+        TriggerServerEvent('qb-vehiclekeys:server:AcquireVehicleKeys', plate)
+    end)
+    pcall(function()
+        exports['qbx_vehiclekeys']:GiveKeys(source, plate)
+    end)
+end
+
 local function cleanupRentals()
     for _, veh in ipairs(rentalVehicles) do
         if DoesEntityExist(veh) then
@@ -26,26 +38,25 @@ local function cleanupRentals()
     end
     rentalVehicles = {}
 
-    if rentalBlip and DoesBlipExist(rentalBlip) then
-        RemoveBlip(rentalBlip)
+    for _, blip in ipairs(rentalBlips) do
+        if DoesBlipExist(blip) then RemoveBlip(blip) end
     end
-    rentalBlip = nil
+    rentalBlips = {}
     rentalCost = 0
 end
 
-local function hasActiveRental()
-    for _, veh in ipairs(rentalVehicles) do
-        if DoesEntityExist(veh) then return true end
-    end
-    return false
+local function addRentalBlip(entity)
+    local blip = AddBlipForEntity(entity)
+    SetBlipSprite(blip, 477)
+    SetBlipColour(blip, 3)
+    SetBlipScale(blip, 0.9)
+    BeginTextCommandSetBlipName('STRING')
+    AddTextComponentSubstringPlayerName('Rental Vehicle')
+    EndTextCommandSetBlipName(blip)
+    rentalBlips[#rentalBlips + 1] = blip
 end
 
 local function spawnRental(vehicleCfg, truckSpawn, trailerSpawn)
-    if hasActiveRental() then
-        HBSFuelNotify('You already have an active rental. Return it first.', 'error')
-        return
-    end
-
     local price = vehicleCfg.price or 0
     local result = lib.callback.await('hbs-fuel:server:rentalPayment', false, price)
     if not result or not result.ok then
@@ -53,7 +64,7 @@ local function spawnRental(vehicleCfg, truckSpawn, trailerSpawn)
         return
     end
 
-    rentalCost = price
+    rentalCost = rentalCost + price
 
     if vehicleCfg.truck and vehicleCfg.trailer then
         local truckHash = loadVehicleModel(vehicleCfg.truck)
@@ -81,11 +92,14 @@ local function spawnRental(vehicleCfg, truckSpawn, trailerSpawn)
         SetModelAsNoLongerNeeded(trailerHash)
 
         AttachVehicleToTrailer(truck, trailer, 1.0)
-        rentalVehicles = { truck, trailer }
+        rentalVehicles[#rentalVehicles + 1] = truck
+        rentalVehicles[#rentalVehicles + 1] = trailer
 
-        rentalBlip = AddBlipForEntity(truck)
+        giveVehicleKeys(truck)
+        addRentalBlip(truck)
     else
-        local spawn = vehicleCfg.model == 'tanker2' or vehicleCfg.model == 'tanker' and trailerSpawn or truckSpawn
+        local isTrailer = vehicleCfg.model == 'tanker2' or vehicleCfg.model == 'tanker'
+        local spawn = isTrailer and trailerSpawn or truckSpawn
         local x, y, z, w = spawn.x, spawn.y, spawn.z, spawn.w or 0.0
         local hash = loadVehicleModel(vehicleCfg.model)
         if not hash then
@@ -97,26 +111,20 @@ local function spawnRental(vehicleCfg, truckSpawn, trailerSpawn)
         SetEntityAsMissionEntity(veh, true, true)
         SetVehicleOnGroundProperly(veh)
         SetModelAsNoLongerNeeded(hash)
-        rentalVehicles = { veh }
+        rentalVehicles[#rentalVehicles + 1] = veh
 
-        rentalBlip = AddBlipForEntity(veh)
-    end
-
-    if rentalBlip then
-        SetBlipSprite(rentalBlip, 477)
-        SetBlipColour(rentalBlip, 3)
-        SetBlipScale(rentalBlip, 0.9)
-        BeginTextCommandSetBlipName('STRING')
-        AddTextComponentSubstringPlayerName('Rental Vehicle')
-        EndTextCommandSetBlipName(rentalBlip)
+        if not isTrailer then
+            giveVehicleKeys(veh)
+        end
+        addRentalBlip(veh)
     end
 
     HBSFuelNotify(('Rental spawned. Cost: $%d'):format(price), 'success')
 end
 
 local function returnRental()
-    if not hasActiveRental() then
-        HBSFuelNotify('You have no active rental.', 'error')
+    if #rentalVehicles == 0 then
+        HBSFuelNotify('You have no active rentals.', 'error')
         return
     end
 
@@ -126,7 +134,7 @@ local function returnRental()
     end
 
     cleanupRentals()
-    HBSFuelNotify(('Rental returned. Refund: $%d'):format(refund), 'success')
+    HBSFuelNotify(('All rentals returned. Refund: $%d'):format(refund), 'success')
 end
 
 local function openRentalMenu(truckSpawn, trailerSpawn)
@@ -144,10 +152,10 @@ local function openRentalMenu(truckSpawn, trailerSpawn)
         }
     end
 
-    if hasActiveRental() then
+    if #rentalVehicles > 0 then
         local refund = math.floor(rentalCost * (Config.Rentals.ReturnRefund or 0.5))
         options[#options + 1] = {
-            title = 'Return Rental',
+            title = 'Return All Rentals',
             description = ('Refund: $%d'):format(refund),
             icon = 'fa-solid fa-rotate-left',
             onSelect = function()
