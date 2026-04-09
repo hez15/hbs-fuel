@@ -119,6 +119,37 @@ RegisterCommand('fueladmin', function(source, args)
     end
 end, true)
 
+-- ── VEHICLE RENTALS ──
+
+lib.callback.register('hbs-fuel:server:rentalPayment', function(source, price)
+    price = tonumber(price) or 0
+    if price <= 0 then return { ok = true } end
+
+    if not HBSFuelHasMoney(source, price, 'cash') then
+        if not HBSFuelHasMoney(source, price, 'bank') then
+            return { ok = false, message = 'Not enough money.' }
+        end
+        if not HBSFuelRemoveMoney(source, price, 'bank', 'fuel_vehicle_rental') then
+            return { ok = false, message = 'Payment failed.' }
+        end
+        return { ok = true }
+    end
+
+    if not HBSFuelRemoveMoney(source, price, 'cash', 'fuel_vehicle_rental') then
+        return { ok = false, message = 'Payment failed.' }
+    end
+    return { ok = true }
+end)
+
+RegisterNetEvent('hbs-fuel:server:rentalRefund', function(amount)
+    local src = source
+    amount = tonumber(amount) or 0
+    if amount <= 0 then return end
+    if HBSFuelAddMoney then
+        HBSFuelAddMoney(src, 'cash', amount, 'fuel_rental_refund')
+    end
+end)
+
 AddEventHandler('playerDropped', function()
     local src = source
     if activeNozzles[src] then

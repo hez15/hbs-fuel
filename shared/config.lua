@@ -396,6 +396,26 @@ Config.JobVehicles = {
     refined = { truck = 'hauler', trailer = 'tanker' },
 }
 
+Config.Rentals = {
+    Enabled = true,
+    Locations = {
+        {
+            label = 'Vehicle Rental',
+            coords = vec4(1642.0, -1680.0, 111.48, 45.0),
+            spawnPoint = vec4(1638.0, -1675.0, 111.48, 45.0),
+            model = 's_m_y_construct_01',
+        },
+    },
+    Vehicles = {
+        { id = 'hauler', label = 'Hauler (Truck Cab)', price = 500, model = 'hauler' },
+        { id = 'tanker_crude', label = 'Crude Tanker Trailer', price = 1000, model = 'tanker2' },
+        { id = 'tanker_refined', label = 'Fuel Tanker Trailer', price = 1000, model = 'tanker' },
+        { id = 'hauler_crude', label = 'Hauler + Crude Tanker', price = 1400, truck = 'hauler', trailer = 'tanker2' },
+        { id = 'hauler_refined', label = 'Hauler + Fuel Tanker', price = 1400, truck = 'hauler', trailer = 'tanker' },
+    },
+    ReturnRefund = 0.5,  -- 50% refund when returning rental
+}
+
 Config.Crime = {
     Enabled = true,
     SiphonEnabled = true,
