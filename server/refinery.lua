@@ -37,7 +37,7 @@ exports('AddCrudeToRefinery', function(refineryId, litres)
     return true
 end)
 
-exports('ProcessRefineryBatch', function(refineryId)
+exports('ProcessRefineryBatch', function(refineryId, startedBy)
     local refinery = getRefinery(refineryId)
     if not refinery then return false, 'Invalid refinery.' end
     if activeBatches[refineryId] then return false, 'Batch already running.' end
@@ -47,7 +47,7 @@ exports('ProcessRefineryBatch', function(refineryId)
     if refinery.crude.current < recipe.input.crude then return false, 'Not enough crude.' end
 
     refinery.crude.current = refinery.crude.current - recipe.input.crude
-    activeBatches[refineryId] = true
+    activeBatches[refineryId] = { startedBy = startedBy, startTime = os.time(), processTime = recipe.processTime }
     SaveRefineryState(refineryId)
 
     CreateThread(function()
@@ -56,6 +56,23 @@ exports('ProcessRefineryBatch', function(refineryId)
             refinery.products[fuelType] = refinery.products[fuelType] or { current = 0.0, max = amount }
             refinery.products[fuelType].current = math.min(refinery.products[fuelType].current + amount, refinery.products[fuelType].max)
         end
+
+        local lines = {}
+        for fuelType, amount in pairs(recipe.output) do
+            local fuel = FuelTypes and FuelTypes[fuelType]
+            lines[#lines + 1] = ('%s +%.0fL'):format(fuel and fuel.label or fuelType, amount)
+        end
+        local summary = table.concat(lines, ', ')
+
+        if startedBy and GetPlayerName(startedBy) then
+            TriggerClientEvent('ox_lib:notify', startedBy, {
+                title = 'Refinery',
+                description = 'Batch complete! ' .. summary,
+                type = 'success',
+                duration = 8000,
+            })
+        end
+
         activeBatches[refineryId] = nil
         SaveRefineryState(refineryId)
     end)
@@ -66,7 +83,26 @@ end)
 lib.callback.register('hbs-fuel:server:getRefineryData', function(_, refineryId)
     local refinery = getRefinery(refineryId)
     if not refinery then return nil end
-    return refinery
+
+    local batch = activeBatches[refineryId]
+    local batchInfo = nil
+    if batch then
+        local elapsed = os.time() - batch.startTime
+        local remaining = math.max(batch.processTime - elapsed, 0)
+        batchInfo = {
+            active = true,
+            remaining = remaining,
+            total = batch.processTime,
+        }
+    end
+
+    return {
+        crude = refinery.crude,
+        products = refinery.products,
+        label = refinery.label,
+        recipe = refinery.recipe,
+        batch = batchInfo,
+    }
 end)
 
 lib.callback.register('hbs-fuel:server:openRefineryValve', function(source, refineryId)
@@ -85,13 +121,47 @@ lib.callback.register('hbs-fuel:server:startRefineryBatch', function(source, ref
         return { ok = false, message = 'Open the valve first.' }
     end
 
-    local ok, reason = exports['hbs-fuel']:ProcessRefineryBatch(refineryId)
+    local refinery = getRefinery(refineryId)
+    if not refinery then
+        return { ok = false, message = 'Refinery not found.' }
+    end
+
+    local recipe = Config.RefineryRecipes[refinery.recipe]
+    if not recipe then
+        return { ok = false, message = 'Recipe missing.' }
+    end
+
+    if activeBatches[refineryId] then
+        return { ok = false, message = 'A batch is already processing.' }
+    end
+
+    if refinery.crude.current < recipe.input.crude then
+        return { ok = false, message = ('Not enough crude. Need %.0fL, have %.0fL.'):format(recipe.input.crude, refinery.crude.current) }
+    end
+
+    local ok, reason = exports['hbs-fuel']:ProcessRefineryBatch(refineryId, source)
     if not ok then
         return { ok = false, message = reason or 'Unable to start batch.' }
     end
 
     refineryValveState[refineryId] = nil
-    return { ok = true, message = 'Refinery batch started.' }
+
+    local outputLines = {}
+    for fuelType, amount in pairs(recipe.output) do
+        local fuel = FuelTypes and FuelTypes[fuelType]
+        outputLines[#outputLines + 1] = ('  %s: +%.0fL'):format(fuel and fuel.label or fuelType, amount)
+    end
+
+    local mins = math.floor(recipe.processTime / 60)
+    local secs = recipe.processTime % 60
+    local timeStr = mins > 0 and ('%dm %ds'):format(mins, secs) or ('%ds'):format(secs)
+
+    return {
+        ok = true,
+        message = ('Batch started! Using %.0fL crude. Ready in %s.'):format(recipe.input.crude, timeStr),
+        processTime = recipe.processTime,
+        output = recipe.output,
+    }
 end)
 
 lib.callback.register('hbs-fuel:server:loadCrudeTanker', function(_, plate, litres, modelName)
