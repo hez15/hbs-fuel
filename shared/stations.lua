@@ -6,6 +6,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(-724.45, -909.6, 18.34) },
+        chargerPoint = vec4(-706.0, -910.0, 19.22, 180.0),
         tanks = {
             regular = { current = 6500.0, max = 8000.0 },
             diesel = { current = 2200.0, max = 4000.0 },
@@ -20,6 +21,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(-33.86, -1755.96, 28.36) },
+        chargerPoint = vec4(-52.0, -1757.0, 29.42, 0.0),
         tanks = {
             regular = { current = 7000.0, max = 9000.0 },
             diesel = { current = 2600.0, max = 4500.0 },
@@ -34,6 +36,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(266.25, -1234.9, 28.23) },
+        chargerPoint = vec4(270.0, -1258.0, 29.29, 90.0),
         tanks = {
             regular = { current = 6000.0, max = 8000.0 },
             diesel = { current = 2000.0, max = 4000.0 },
@@ -48,6 +51,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(1175.93, -312.39, 68.2) },
+        chargerPoint = vec4(1159.0, -320.0, 69.21, 270.0),
         tanks = {
             regular = { current = 5500.0, max = 7000.0 },
             diesel = { current = 1800.0, max = 3500.0 },
@@ -62,6 +66,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(1195.05, -1408.18, 34.22) },
+        chargerPoint = vec4(1207.0, -1399.0, 35.22, 0.0),
         tanks = {
             regular = { current = 6000.0, max = 8000.0 },
             diesel = { current = 2000.0, max = 4000.0 },
@@ -78,6 +83,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(-528.22, -1194.79, 17.43) },
+        chargerPoint = vec4(-535.0, -1217.0, 18.46, 180.0),
         tanks = {
             regular = { current = 5500.0, max = 7500.0 },
             diesel = { current = 2000.0, max = 3500.0 },
@@ -92,6 +98,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(-1449.31, -261.91, 45.44) },
+        chargerPoint = vec4(-1434.0, -280.0, 46.21, 90.0),
         tanks = {
             regular = { current = 5000.0, max = 7000.0 },
             diesel = { current = 1800.0, max = 3500.0 },
@@ -106,6 +113,7 @@ Stations = {
         radius = 40.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(204.46, 6604.15, 30.62) },
+        chargerPoint = vec4(170.0, 6606.0, 31.87, 270.0),
         tanks = {
             regular = { current = 4000.0, max = 6000.0 },
             diesel = { current = 1500.0, max = 3000.0 },
@@ -120,6 +128,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(1991.94, 3758.78, 31.19) },
+        chargerPoint = vec4(2002.0, 3777.0, 32.18, 0.0),
         tanks = {
             regular = { current = 3500.0, max = 5500.0 },
             diesel = { current = 1500.0, max = 3000.0 },
@@ -134,6 +143,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(1691.41, 6435.28, 31.76) },
+        chargerPoint = vec4(1705.0, 6413.0, 32.76, 90.0),
         tanks = {
             regular = { current = 3000.0, max = 5000.0 },
             diesel = { current = 1200.0, max = 2500.0 },
@@ -148,6 +158,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(44.0, 2786.0, 58.1) },
+        chargerPoint = vec4(53.0, 2775.0, 58.1, 180.0),
         tanks = {
             regular = { current = 3200.0, max = 5000.0 },
             diesel = { current = 1000.0, max = 2500.0 },
@@ -164,6 +175,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(804.38, -1029.85, 25.12) },
+        chargerPoint = vec4(823.0, -1025.0, 26.4, 0.0),
         tanks = {
             regular = { current = 6500.0, max = 8500.0 },
             diesel = { current = 2500.0, max = 4500.0 },
@@ -178,6 +190,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(2561.46, 354.47, 107.62) },
+        chargerPoint = vec4(2585.0, 359.0, 108.47, 90.0),
         tanks = {
             regular = { current = 4000.0, max = 6000.0 },
             diesel = { current = 1500.0, max = 3000.0 },
@@ -194,6 +207,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(632.85, 248.62, 102.15) },
+        chargerPoint = vec4(625.0, 272.0, 103.09, 270.0),
         tanks = {
             regular = { current = 5500.0, max = 7500.0 },
             diesel = { current = 2000.0, max = 3500.0 },
@@ -208,6 +222,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(1032.0, -1340.0, 30.25) },
+        chargerPoint = vec4(1042.0, -1343.0, 30.25, 0.0),
         tanks = {
             regular = { current = 5000.0, max = 7000.0 },
             diesel = { current = 1800.0, max = 3500.0 },
@@ -224,6 +239,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(-100.45, 6422.14, 30.34) },
+        chargerPoint = vec4(-98.0, 6416.0, 31.49, 180.0),
         tanks = {
             regular = { current = 3500.0, max = 5500.0 },
             diesel = { current = 1200.0, max = 2500.0 },
@@ -240,6 +256,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(1195.45, 2669.15, 36.8) },
+        chargerPoint = vec4(1205.0, 2664.0, 37.9, 270.0),
         tanks = {
             regular = { current = 3000.0, max = 5000.0 },
             diesel = { current = 1200.0, max = 2500.0 },
@@ -254,6 +271,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(-2113.16, -324.67, 12.02) },
+        chargerPoint = vec4(-2093.0, -324.0, 13.17, 90.0),
         tanks = {
             regular = { current = 4500.0, max = 6500.0 },
             diesel = { current = 1500.0, max = 3000.0 },
@@ -268,6 +286,7 @@ Stations = {
         radius = 35.0,
         supports = { 'regular', 'diesel' },
         unloadPoints = { vec3(-2556.22, 2349.79, 32.07) },
+        chargerPoint = vec4(-2552.0, 2338.0, 33.08, 180.0),
         tanks = {
             regular = { current = 3500.0, max = 5500.0 },
             diesel = { current = 1200.0, max = 2500.0 },
