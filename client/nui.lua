@@ -187,6 +187,7 @@ function OpenRefineryStockNUI(refineryId)
         label = refinery and refinery.label or 'Refinery Stock',
         crude = data.crude,
         products = data.products,
+        batch = data.batch,
     })
     setNuiFocus(true)
 end
