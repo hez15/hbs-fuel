@@ -57,7 +57,7 @@ server_scripts {
     'server/crime.lua',
     'server/admin.lua'
 }
-
+data_file 'DLC_ITYP_REQUEST' 'stream/bzzz_scrap_items.ytyp'
 dependencies {
     'ox_lib',
     'ox_inventory',
