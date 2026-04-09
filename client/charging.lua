@@ -90,28 +90,30 @@ end)
 CreateThread(function()
     Wait(2000)
 
-    for i, loc in ipairs(Config.Charging.Locations or {}) do
-        local hash = joaat(Config.Charging.PropModel or 'bzzz_pumps_charger_b')
-        RequestModel(hash)
-        local timeout = GetGameTimer() + 5000
-        while not HasModelLoaded(hash) do
-            Wait(0)
-            if GetGameTimer() > timeout then break end
-        end
+    local hash = joaat(Config.Charging.PropModel or 'bzzz_pumps_charger_b')
+    RequestModel(hash)
+    local timeout = GetGameTimer() + 5000
+    while not HasModelLoaded(hash) do
+        Wait(0)
+        if GetGameTimer() > timeout then break end
+    end
+    if not HasModelLoaded(hash) then return end
 
-        if HasModelLoaded(hash) then
-            local prop = CreateObject(hash, loc.coords.x, loc.coords.y, loc.coords.z, false, false, false)
+    local idx = 0
+    for stationId, station in pairs(Stations) do
+        if station.chargerPoint then
+            idx = idx + 1
+            local cp = station.chargerPoint
+            local prop = CreateObject(hash, cp.x, cp.y, cp.z, false, false, false)
             if prop and prop ~= 0 then
                 PlaceObjectOnGroundProperly(prop)
                 FreezeEntityPosition(prop, true)
-                if loc.heading then
-                    SetEntityHeading(prop, loc.heading)
-                end
+                SetEntityHeading(prop, cp.w or 0.0)
                 chargingProps[#chargingProps + 1] = prop
 
                 exports.ox_target:addLocalEntity(prop, {
                     {
-                        name = ('hbs_fuel_charger_%d'):format(i),
+                        name = ('hbs_fuel_charger_%s'):format(stationId),
                         icon = 'fa-solid fa-bolt',
                         label = 'Charge Electric Vehicle',
                         canInteract = function()
@@ -123,16 +125,16 @@ CreateThread(function()
                             local ped = PlayerPedId()
                             local veh = lib.getClosestVehicle(GetEntityCoords(ped), 5.0, true)
                             if veh and veh ~= 0 then
-                                local stationId = HBSFuel.GetClosestStation(loc.coords)
                                 openChargingNUI(veh, stationId)
                             end
                         end
                     },
                 })
             end
-            SetModelAsNoLongerNeeded(hash)
         end
     end
+
+    SetModelAsNoLongerNeeded(hash)
 end)
 
 AddEventHandler('onResourceStop', function(resource)
