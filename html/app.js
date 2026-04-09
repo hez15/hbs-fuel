@@ -445,6 +445,23 @@ function openRefineryPanel(data) {
             </div>`;
     }
 
+    // Batch status
+    const batchCard = document.getElementById('refinery-batch-status');
+    const batchText = document.getElementById('refinery-batch-text');
+    if (data.batch && data.batch.active) {
+        const remaining = data.batch.remaining || 0;
+        const mins = Math.floor(remaining / 60);
+        const secs = remaining % 60;
+        const timeStr = mins > 0 ? mins + 'm ' + secs + 's' : secs + 's';
+        batchText.textContent = 'Processing — ' + timeStr + ' remaining';
+        batchText.style.color = '#f59e0b';
+        batchCard.classList.remove('hidden');
+    } else {
+        batchText.textContent = 'Idle';
+        batchText.style.color = '#10b981';
+        batchCard.classList.remove('hidden');
+    }
+
     showPanel('refinery-panel');
 }
 

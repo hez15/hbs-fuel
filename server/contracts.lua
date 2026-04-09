@@ -315,13 +315,6 @@ lib.callback.register('hbs-fuel:server:acceptContract', function(source, contrac
 
     ActiveByPlayer[source] = contract.id
 
-    -- Spawn job vehicle using rental spawn points
-    local rentals = Config.Rentals and Config.Rentals.Locations or {}
-    if #rentals > 0 then
-        local loc = rentals[1]
-        TriggerClientEvent('hbs-fuel:client:spawnJobVehicle', source, contract.type, loc.truckSpawn, loc.trailerSpawn)
-    end
-
     return {
         ok = true,
         contract = sanitizeContractForClient(contract),

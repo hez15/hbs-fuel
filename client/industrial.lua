@@ -93,9 +93,13 @@ local function createHose(anchorCoords, hoseType, refineryId)
         return false
     end
 
+    local anchorModelName = nozzleCfg.rope and nozzleCfg.rope.anchorModel or nozzleCfg.model
+    local anchorModel = loadModel(anchorModelName)
+    if not anchorModel then anchorModel = model end
+
     local pedCoords = GetEntityCoords(ped)
     local prop = CreateObject(model, pedCoords.x, pedCoords.y, pedCoords.z + 0.2, true, true, false)
-    local anchor = CreateObject(model, anchorCoords.x, anchorCoords.y, anchorCoords.z, false, false, false)
+    local anchor = CreateObject(anchorModel, anchorCoords.x, anchorCoords.y, anchorCoords.z, false, false, false)
     if not prop or prop == 0 or not anchor or anchor == 0 then
         HBSFuelNotify('Failed to create industrial hose parts.', 'error')
         return false
@@ -128,8 +132,8 @@ local function createHose(anchorCoords, hoseType, refineryId)
 
     FreezeEntityPosition(anchor, true)
     SetEntityCollision(anchor, false, false)
-    SetEntityAlpha(anchor, 0, false)
-    SetEntityVisible(anchor, false, false)
+    PlaceObjectOnGroundProperly(anchor)
+    SetModelAsNoLongerNeeded(anchorModel)
 
     hoseState.active = true
     hoseState.refineryId = refineryId
@@ -710,24 +714,6 @@ local function registerRefineryTargets()
             })
         end
 
-        if points.contractsBoard then
-            exports.ox_target:addSphereZone({
-                coords = points.contractsBoard,
-                radius = 3.0,
-                debug = Config.Debug,
-                options = {
-                    {
-                        name = ('hbs_fuel_contracts_%s'):format(refineryId),
-                        icon = 'fa-solid fa-clipboard-list',
-                        label = 'Open Contracts Board',
-                        onSelect = function()
-                            TriggerEvent('hbs-fuel:client:openContractsBoard')
-                        end
-                    },
-                }
-            })
-        end
-
         if points.tankerLoad then
             exports.ox_target:addSphereZone({
                 coords = points.tankerLoad,
@@ -867,6 +853,31 @@ local function spawnUnloadProps()
                     PlaceObjectOnGroundProperly(prop)
                     FreezeEntityPosition(prop, true)
                     SetEntityCollision(prop, false, false)
+                    unloadProps[#unloadProps + 1] = prop
+                end
+                SetModelAsNoLongerNeeded(hash)
+            end
+        end
+    end
+
+    -- Refinery controller prop at processStart
+    for _, refinery in pairs(Refineries) do
+        local pts = refinery.points or {}
+        if pts.processStart then
+            local hash = joaat('p_rail_controller_s')
+            RequestModel(hash)
+            local timeout = GetGameTimer() + 5000
+            while not HasModelLoaded(hash) do
+                Wait(0)
+                if GetGameTimer() > timeout then break end
+            end
+            if HasModelLoaded(hash) then
+                local c = pts.processStart
+                local prop = CreateObject(hash, c.x, c.y, c.z, false, false, false)
+                if prop and prop ~= 0 then
+                    PlaceObjectOnGroundProperly(prop)
+                    FreezeEntityPosition(prop, true)
+                    SetEntityHeading(prop, 273.49)
                     unloadProps[#unloadProps + 1] = prop
                 end
                 SetModelAsNoLongerNeeded(hash)
@@ -1110,4 +1121,82 @@ end
 CreateThread(function()
     Wait(2000)
     spawnContractNPCs()
+end)
+
+-- ── HELP MARKERS AT LOADING/UNLOADING ZONES ──
+
+local helpZones = {}
+
+CreateThread(function()
+    Wait(3000)
+
+    for _, refinery in pairs(Refineries) do
+        local pts = refinery.points or {}
+        if pts.crudeSource then
+            helpZones[#helpZones + 1] = { coords = pts.crudeSource, label = '[E] Crude Oil Source — Grab hose to load crude tanker', colour = { 255, 120, 0 } }
+        end
+        for _, c in ipairs(pts.crudeDelivery or {}) do
+            helpZones[#helpZones + 1] = { coords = c, label = '[E] Crude Delivery — Grab hose to unload crude into refinery', colour = { 255, 120, 0 } }
+        end
+        if pts.valve then
+            helpZones[#helpZones + 1] = { coords = pts.valve, label = '[E] Refinery Valve — Open before starting a batch', colour = { 100, 180, 255 } }
+        end
+        if pts.processStart then
+            helpZones[#helpZones + 1] = { coords = pts.processStart, label = '[E] Refinery Control — Start batch or view stock', colour = { 100, 180, 255 } }
+        end
+        if pts.tankerLoad then
+            helpZones[#helpZones + 1] = { coords = pts.tankerLoad, label = '[E] Fuel Loading — Grab hose to load refined fuel into tanker', colour = { 50, 200, 100 } }
+        end
+        if pts.oilBottling then
+            helpZones[#helpZones + 1] = { coords = pts.oilBottling, label = '[E] Oil Bottling — Package motor oil into bottles or drums', colour = { 200, 150, 50 } }
+        end
+    end
+
+    for stationId, station in pairs(Stations) do
+        for _, c in ipairs(station.unloadPoints or {}) do
+            helpZones[#helpZones + 1] = { coords = c, label = '[E] Station Unload — Grab hose to deliver fuel from tanker', colour = { 50, 200, 100 } }
+        end
+    end
+
+    for _, shop in pairs(Config.OilShops or {}) do
+        for _, c in ipairs(shop.unloadPoints or {}) do
+            helpZones[#helpZones + 1] = { coords = c, label = '[E] Oil Delivery — Grab hose to deliver motor oil', colour = { 200, 150, 50 } }
+        end
+    end
+
+    local showingHelp = false
+
+    while true do
+        local sleep = 1000
+        local pedCoords = GetEntityCoords(PlayerPedId())
+
+        local nearestDist = 999.0
+        local nearestZone = nil
+        for _, zone in ipairs(helpZones) do
+            local dist = #(pedCoords - zone.coords)
+            if dist < nearestDist then
+                nearestDist = dist
+                nearestZone = zone
+            end
+        end
+
+        if nearestZone and nearestDist < 8.0 then
+            sleep = 0
+            local c = nearestZone.colour
+            DrawMarker(1, nearestZone.coords.x, nearestZone.coords.y, nearestZone.coords.z - 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 3.0, 0.5, c[1], c[2], c[3], 80, false, true, 2, false, nil, nil, false)
+
+            if nearestDist < 4.0 and not showingHelp then
+                lib.showTextUI(nearestZone.label, { position = 'right-center' })
+                showingHelp = true
+            elseif nearestDist >= 4.0 and showingHelp then
+                lib.hideTextUI()
+                showingHelp = false
+            end
+        elseif showingHelp then
+            lib.hideTextUI()
+            showingHelp = false
+        end
+
+        Wait(sleep)
+    end
 end)
