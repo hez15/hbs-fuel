@@ -294,10 +294,10 @@ Config.RefineryRecipes = {
     crude_basic = {
         input = { crude = 1000.0 },
         output = {
-            regular = 480.0,
-            diesel = 180.0,
-            jetfuel = 140.0,
-            motoroil = 80.0,   -- total output: 880L from 1000L crude
+            regular = 560.0,   -- bumped from 480
+            diesel = 220.0,    -- bumped from 180
+            jetfuel = 160.0,   -- bumped from 140
+            motoroil = 100.0,  -- bumped from 80 — total output: 1040L from 1000L (4% bonus)
         },
         processTime = 240,    -- 4 minutes per batch
     }
