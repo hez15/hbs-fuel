@@ -374,10 +374,8 @@ local function handleLoadCrude(refineryId, point)
         local contracts = lib.callback.await('hbs-fuel:server:getContracts', false)
         if contracts and contracts.active then
             local c = contracts.active
-            local coords = resolveDropoffCoords(c.dropoffType, c.dropoffId)
-            if coords then
-                SetNewWaypoint(coords.x, coords.y)
-                HBSFuelNotify('Waypoint set to delivery location.', 'success')
+            if c.type == 'crude' then
+                HBSFuelContractLoaded()
             end
         end
     end
@@ -534,15 +532,12 @@ local function handleLoadRefined(refineryId, point)
     local result = lib.callback.await('hbs-fuel:server:loadRefinedProduct', false, refineryId, getVehiclePlate(tanker), fuelType, litres, modelName)
     HBSFuelNotify(result and result.message or 'Unable to load refined fuel.', result and result.ok and 'success' or 'error')
 
-    -- Auto-set waypoint to dropoff if player has an active contract
     if result and result.ok then
         local contracts = lib.callback.await('hbs-fuel:server:getContracts', false)
         if contracts and contracts.active then
             local c = contracts.active
-            local coords = resolveDropoffCoords(c.dropoffType, c.dropoffId)
-            if coords then
-                SetNewWaypoint(coords.x, coords.y)
-                HBSFuelNotify('Waypoint set to delivery location.', 'success')
+            if c.type == 'refined' and c.product == fuelType then
+                HBSFuelContractLoaded()
             end
         end
     end

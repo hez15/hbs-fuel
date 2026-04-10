@@ -1,4 +1,10 @@
 local jobVehicles = {}
+local jobBlip = nil
+local contractHud = {
+    active = false,
+    contract = nil,
+    stage = nil,   -- 'pickup' or 'dropoff'
+}
 
 local function cleanupJobVehicles()
     for _, veh in ipairs(jobVehicles) do
@@ -15,7 +21,151 @@ local function cleanupJobVehicles()
     jobBlip = nil
 end
 
-local jobBlip = nil
+-- ── CONTRACT HUD ──
+
+local function resolveLabel(locationType, locationId)
+    if locationType == 'station' and Stations[locationId] then
+        return Stations[locationId].label
+    elseif locationType == 'refinery' and Refineries[locationId] then
+        return Refineries[locationId].label
+    elseif locationType == 'oilshop' and Config.OilShops and Config.OilShops[locationId] then
+        return Config.OilShops[locationId].label
+    elseif locationType == 'crude_source' then
+        return 'Crude Source (Coast)'
+    end
+    return locationId or 'Unknown'
+end
+
+local function resolveCoords(locationType, locationId)
+    if locationType == 'station' and Stations[locationId] then
+        return Stations[locationId].coords
+    elseif locationType == 'refinery' and Refineries[locationId] then
+        return Refineries[locationId].coords
+    elseif locationType == 'oilshop' and Config.OilShops and Config.OilShops[locationId] then
+        return Config.OilShops[locationId].coords
+    elseif locationType == 'crude_source' then
+        for _, refinery in pairs(Refineries) do
+            if refinery.points and refinery.points.crudeSource then
+                return refinery.points.crudeSource
+            end
+        end
+    end
+    return nil
+end
+
+local function buildHudText(contract, stage)
+    if not contract then return nil end
+
+    local productLabel = contract.product or 'fuel'
+    if FuelTypes and FuelTypes[productLabel] then
+        productLabel = FuelTypes[productLabel].label
+    elseif productLabel == 'crude' then
+        productLabel = 'Crude Oil'
+    end
+
+    local lines = {}
+    lines[#lines + 1] = ('📋 **%s Contract**'):format(contract.type == 'crude' and 'Crude Haul' or 'Delivery')
+    lines[#lines + 1] = ('Product: %s'):format(productLabel)
+    lines[#lines + 1] = ('Amount: %.0fL'):format(contract.litresRequired or 0)
+    lines[#lines + 1] = ('Payout: $%s'):format(contract.payout or 0)
+    lines[#lines + 1] = ''
+
+    if stage == 'pickup' then
+        local label = resolveLabel(contract.pickupType, contract.pickupId)
+        lines[#lines + 1] = ('🎯 **Load at:** %s'):format(label)
+        if contract.type == 'crude' then
+            lines[#lines + 1] = 'Load crude into your tanker'
+        else
+            lines[#lines + 1] = ('Load %s into your tanker'):format(productLabel)
+        end
+    elseif stage == 'dropoff' then
+        local label = resolveLabel(contract.dropoffType, contract.dropoffId)
+        lines[#lines + 1] = ('🎯 **Deliver to:** %s'):format(label)
+        lines[#lines + 1] = 'Unload the tanker at the destination'
+    end
+
+    return table.concat(lines, '  \n')
+end
+
+local function updateHud(contract, stage)
+    if not contract then
+        lib.hideTextUI()
+        contractHud.active = false
+        contractHud.contract = nil
+        contractHud.stage = nil
+        return
+    end
+
+    contractHud.active = true
+    contractHud.contract = contract
+    contractHud.stage = stage
+
+    local text = buildHudText(contract, stage)
+    if text then
+        lib.showTextUI(text, {
+            position = 'right-center',
+            icon = 'clipboard-list',
+            style = {
+                borderRadius = 8,
+                backgroundColor = '#1a1a1eee',
+                color = '#ffffff',
+            }
+        })
+    end
+end
+
+local function setPickupWaypoint(contract)
+    local coords = resolveCoords(contract.pickupType, contract.pickupId)
+    if coords then
+        SetNewWaypoint(coords.x, coords.y)
+        local label = resolveLabel(contract.pickupType, contract.pickupId)
+        HBSFuelNotify(('Head to %s to load'):format(label), 'inform')
+    end
+end
+
+local function setDropoffWaypoint(contract)
+    local coords = resolveCoords(contract.dropoffType, contract.dropoffId)
+    if coords then
+        SetNewWaypoint(coords.x, coords.y)
+        local label = resolveLabel(contract.dropoffType, contract.dropoffId)
+        HBSFuelNotify(('Deliver to %s'):format(label), 'inform')
+    end
+end
+
+-- Called when a contract is accepted
+RegisterNetEvent('hbs-fuel:client:contractStarted', function(contract)
+    if not contract then return end
+    updateHud(contract, 'pickup')
+    setPickupWaypoint(contract)
+end)
+
+-- Called after loading tanker with correct product
+RegisterNetEvent('hbs-fuel:client:contractLoaded', function()
+    if not contractHud.active or not contractHud.contract then return end
+    updateHud(contractHud.contract, 'dropoff')
+    setDropoffWaypoint(contractHud.contract)
+    HBSFuelNotify('Fuel loaded! Heading to delivery location.', 'success')
+end)
+
+-- Exported so nui.lua + industrial.lua can trigger it directly
+function HBSFuelStartContractHud(contract)
+    if not contract then return end
+    updateHud(contract, 'pickup')
+    setPickupWaypoint(contract)
+end
+
+function HBSFuelContractLoaded()
+    if not contractHud.active or not contractHud.contract then return end
+    updateHud(contractHud.contract, 'dropoff')
+    setDropoffWaypoint(contractHud.contract)
+    HBSFuelNotify('Fuel loaded! Heading to delivery location.', 'success')
+end
+
+function HBSFuelClearContractHud()
+    updateHud(nil)
+end
+
+-- ── JOB VEHICLE SPAWNING ──
 
 local function loadVehicleModel(model)
     local hash = type(model) == 'string' and joaat(model) or model
@@ -81,6 +231,7 @@ end)
 
 RegisterNetEvent('hbs-fuel:client:contractCompleted', function(payout)
     cleanupJobVehicles()
+    HBSFuelClearContractHud()
     HBSFuelNotify(('Contract completed! $%s deposited to your bank.'):format(payout or 0), 'success')
 end)
 
@@ -91,4 +242,14 @@ end, false)
 AddEventHandler('onResourceStop', function(resource)
     if resource ~= GetCurrentResourceName() then return end
     cleanupJobVehicles()
+    lib.hideTextUI()
+end)
+
+-- On player load, check for active contract and restore HUD
+CreateThread(function()
+    Wait(5000)
+    local data = lib.callback.await('hbs-fuel:server:getContracts', false)
+    if data and data.active then
+        HBSFuelStartContractHud(data.active)
+    end
 end)

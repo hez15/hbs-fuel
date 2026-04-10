@@ -297,10 +297,7 @@ RegisterNUICallback('nuiAcceptContract', function(data, cb)
 
     local c = accepted.contract
     if c then
-        local coords = resolveCoords(c.pickupType, c.pickupId)
-        if coords then
-            SetNewWaypoint(coords.x, coords.y)
-        end
+        HBSFuelStartContractHud(c)
     end
 end)
 
@@ -310,6 +307,7 @@ RegisterNUICallback('nuiCancelContract', function(_, cb)
 
     local result = lib.callback.await('hbs-fuel:server:cancelActiveContract', false)
     if result and result.ok then
+        HBSFuelClearContractHud()
         HBSFuelNotify('Contract cancelled.', 'inform')
     else
         HBSFuelNotify(result and result.message or 'Unable to cancel.', 'error')
