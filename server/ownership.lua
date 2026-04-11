@@ -214,6 +214,8 @@ lib.callback.register('hbs-fuel:server:setStationPrice', function(source, entity
     end
 
     station.priceMultiplier = newMultiplier
+    SaveStationState(entityId)
+    TriggerClientEvent('hbs-fuel:client:stationPriceChanged', -1, entityId, newMultiplier)
 
     return { ok = true, priceMultiplier = newMultiplier }
 end)

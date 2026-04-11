@@ -3,6 +3,12 @@ local currentPlate
 local vehicleFuelCache = {}
 local fuelSaveTimer = 0
 
+RegisterNetEvent('hbs-fuel:client:stationPriceChanged', function(stationId, newMultiplier)
+    if Stations and Stations[stationId] then
+        Stations[stationId].priceMultiplier = tonumber(newMultiplier) or 1.0
+    end
+end)
+
 local function normalizePlate(plate)
     return plate and plate:gsub('^%s*(.-)%s*$', '%1') or nil
 end

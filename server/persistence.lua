@@ -36,9 +36,14 @@ local function ensureTables()
         fuel_type VARCHAR(32) NOT NULL,
         current_litres DECIMAL(12,2) NOT NULL DEFAULT 0.00,
         max_litres DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+        price_multiplier DECIMAL(4,2) NOT NULL DEFAULT 1.00,
         updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         PRIMARY KEY (station_id, fuel_type)
     )]])
+
+    pcall(function()
+        MySQL.query.await([[ALTER TABLE hbs_fuel_station_stock ADD COLUMN IF NOT EXISTS price_multiplier DECIMAL(4,2) NOT NULL DEFAULT 1.00]])
+    end)
 
     MySQL.query.await([[CREATE TABLE IF NOT EXISTS hbs_fuel_refinery_stock (
         refinery_id VARCHAR(64) NOT NULL,
@@ -70,13 +75,17 @@ local function loadStationState()
         StationState[stationId] = copyStationDefaults(stationId, station)
     end
 
-    local rows = MySQL.query.await('SELECT station_id, fuel_type, current_litres, max_litres FROM hbs_fuel_station_stock') or {}
+    local rows = MySQL.query.await('SELECT station_id, fuel_type, current_litres, max_litres, price_multiplier FROM hbs_fuel_station_stock') or {}
     for _, row in ipairs(rows) do
         local station = StationState[row.station_id]
         if station then
             station.tanks[row.fuel_type] = station.tanks[row.fuel_type] or {}
             station.tanks[row.fuel_type].current = tonumber(row.current_litres)
             station.tanks[row.fuel_type].max = tonumber(row.max_litres)
+            local pm = tonumber(row.price_multiplier)
+            if pm and pm > 0 then
+                station.priceMultiplier = pm
+            end
         end
     end
 end
@@ -123,11 +132,16 @@ function SaveStationState(stationId)
     local station = StationState[stationId]
     if not station then return end
 
+    local pm = tonumber(station.priceMultiplier) or 1.0
+
     for fuelType, tank in pairs(station.tanks) do
-        MySQL.prepare.await([[INSERT INTO hbs_fuel_station_stock (station_id, fuel_type, current_litres, max_litres)
-            VALUES (?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE current_litres = VALUES(current_litres), max_litres = VALUES(max_litres)]], {
-            stationId, fuelType, tank.current, tank.max
+        MySQL.prepare.await([[INSERT INTO hbs_fuel_station_stock (station_id, fuel_type, current_litres, max_litres, price_multiplier)
+            VALUES (?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                current_litres = VALUES(current_litres),
+                max_litres = VALUES(max_litres),
+                price_multiplier = VALUES(price_multiplier)]], {
+            stationId, fuelType, tank.current, tank.max, pm
         })
     end
 end

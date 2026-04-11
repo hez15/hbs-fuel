@@ -17,6 +17,20 @@ function OpenRefuelNUI(stationId, station, vehicle)
         return
     end
 
+    -- Fetch live price multiplier from server — owner may have changed it
+    local livePriceMult = nil
+    if stationId then
+        livePriceMult = lib.callback.await('hbs-fuel:server:getStationPrice', false, stationId)
+    end
+    if not livePriceMult or livePriceMult <= 0 then
+        livePriceMult = (station and station.priceMultiplier) or Config.DefaultStationPriceMultiplier
+    end
+
+    -- Keep client cache in sync so subsequent opens are instant
+    if stationId and Stations and Stations[stationId] then
+        Stations[stationId].priceMultiplier = livePriceMult
+    end
+
     local allowedTypes = HBSFuel.GetAllowedFuelTypes(vehicle)
     local fuelOptions = {}
 
@@ -29,7 +43,7 @@ function OpenRefuelNUI(stationId, station, vehicle)
             end
 
             if allowed then
-                local pricePerLitre = FuelTypes[fuelType].price * (station and station.priceMultiplier or Config.DefaultStationPriceMultiplier)
+                local pricePerLitre = FuelTypes[fuelType].price * livePriceMult
                 fuelOptions[#fuelOptions + 1] = {
                     value = fuelType,
                     label = FuelTypes[fuelType].label,
