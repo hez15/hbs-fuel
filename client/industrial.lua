@@ -375,7 +375,7 @@ local function handleLoadCrude(refineryId, point)
         if contracts and contracts.active then
             local c = contracts.active
             if c.type == 'crude' then
-                HBSFuelContractLoaded()
+                HBSFuelContractLoaded(c)
             end
         end
     end
@@ -564,7 +564,7 @@ local function handleLoadRefined(refineryId, point)
         if contracts and contracts.active then
             local c = contracts.active
             if c.type == 'refined' and c.product == fuelType then
-                HBSFuelContractLoaded()
+                HBSFuelContractLoaded(c)
             end
         end
     end
@@ -1253,6 +1253,10 @@ CreateThread(function()
 
     local showingHelp = false
 
+    local function contractHudActive()
+        return HBSFuelIsContractHudActive and HBSFuelIsContractHudActive()
+    end
+
     while true do
         local sleep = 1000
         local pedCoords = GetEntityCoords(PlayerPedId())
@@ -1272,7 +1276,11 @@ CreateThread(function()
             local c = nearestZone.colour
             DrawMarker(1, nearestZone.coords.x, nearestZone.coords.y, nearestZone.coords.z - 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 3.0, 0.5, c[1], c[2], c[3], 80, false, true, 2, false, nil, nil, false)
 
-            if nearestDist < 4.0 and not showingHelp then
+            -- The contract HUD owns the text UI when active. Never touch it
+            -- in that case, otherwise we clobber the contract info/waypoint UI.
+            if contractHudActive() then
+                showingHelp = false
+            elseif nearestDist < 4.0 and not showingHelp then
                 lib.showTextUI(nearestZone.label, { position = 'right-center' })
                 showingHelp = true
             elseif nearestDist >= 4.0 and showingHelp then
@@ -1280,8 +1288,13 @@ CreateThread(function()
                 showingHelp = false
             end
         elseif showingHelp then
-            lib.hideTextUI()
-            showingHelp = false
+            if contractHudActive() then
+                -- Don't hide — contract HUD took ownership of the text UI.
+                showingHelp = false
+            else
+                lib.hideTextUI()
+                showingHelp = false
+            end
         end
 
         Wait(sleep)

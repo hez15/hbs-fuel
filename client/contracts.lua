@@ -187,8 +187,10 @@ function HBSFuelStartContractHud(contract)
     setPickupWaypoint(contract)
 end
 
-function HBSFuelContractLoaded()
-    local contract = contractHud.contract
+function HBSFuelContractLoaded(contract)
+    if not contract then
+        contract = contractHud.contract
+    end
     if not contract then
         local data = lib.callback.await('hbs-fuel:server:getContracts', false)
         contract = data and data.active
@@ -201,6 +203,33 @@ end
 
 function HBSFuelClearContractHud()
     updateHud(nil)
+end
+
+-- Used by other systems (e.g. help-marker thread) to know if the contract
+-- HUD currently owns the text UI so they don't clobber it.
+function HBSFuelIsContractHudActive()
+    return contractHud.active == true
+end
+
+-- Re-shows the current contract HUD text. Used after another system
+-- temporarily took over the text UI (e.g. help markers) so the contract
+-- info doesn't vanish.
+function HBSFuelRefreshContractHud()
+    if not contractHud.active or not contractHud.contract or not contractHud.stage then
+        return
+    end
+    local text = buildHudText(contractHud.contract, contractHud.stage)
+    if text then
+        lib.showTextUI(text, {
+            position = 'right-center',
+            icon = 'clipboard-list',
+            style = {
+                borderRadius = 8,
+                backgroundColor = '#1a1a1eee',
+                color = '#ffffff',
+            }
+        })
+    end
 end
 
 -- ── JOB VEHICLE SPAWNING ──
