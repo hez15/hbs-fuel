@@ -267,6 +267,11 @@ lib.callback.register('hbs-fuel:server:unloadTankerToStation', function(_, stati
     return { ok = true, litres = moved, fuelType = fuelType, stationLevel = tank.current, message = Config.Notifications.TankerUnloaded }
 end)
 
+lib.callback.register('hbs-fuel:server:getStationPrice', function(_, stationId)
+    local station = getStationById(stationId)
+    return station and station.priceMultiplier or 1.0
+end)
+
 exports('GetStationStock', function(stationId, fuelType)
     local station = getStationById(stationId)
     return station and station.tanks[fuelType] and station.tanks[fuelType].current or nil
