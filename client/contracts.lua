@@ -47,17 +47,33 @@ local function resolveLabel(locationType, locationId)
     return locationId or 'Unknown'
 end
 
-local function resolveCoords(locationType, locationId)
+local function resolveCoords(locationType, locationId, forAction)
+    -- forAction: 'pickup' (loading) or 'dropoff' (unloading)
     if locationType == 'station' and Stations[locationId] then
-        return Stations[locationId].coords
-    elseif locationType == 'refinery' then
-        if Refineries[locationId] then
-            return Refineries[locationId].coords
+        local s = Stations[locationId]
+        if forAction == 'dropoff' and s.unloadPoints and s.unloadPoints[1] then
+            return s.unloadPoints[1]
         end
-        local _, r = resolveRefineryFallback()
-        if r then return r.coords end
+        return s.coords
+    elseif locationType == 'refinery' then
+        local r = Refineries[locationId]
+        if not r then
+            for _, rf in pairs(Refineries) do r = rf; break end
+        end
+        if r then
+            if forAction == 'pickup' and r.points and r.points.tankerLoad then
+                return r.points.tankerLoad
+            elseif forAction == 'dropoff' and r.points and r.points.crudeDelivery and r.points.crudeDelivery[1] then
+                return r.points.crudeDelivery[1]
+            end
+            return r.coords
+        end
     elseif locationType == 'oilshop' and Config.OilShops and Config.OilShops[locationId] then
-        return Config.OilShops[locationId].coords
+        local shop = Config.OilShops[locationId]
+        if forAction == 'dropoff' and shop.unloadPoints and shop.unloadPoints[1] then
+            return shop.unloadPoints[1]
+        end
+        return shop.coords
     elseif locationType == 'crude_source' then
         for _, refinery in pairs(Refineries) do
             if refinery.points and refinery.points.crudeSource then
@@ -103,8 +119,9 @@ local function buildHudText(contract, stage)
 end
 
 local function updateHud(contract, stage)
+    lib.hideTextUI()
+
     if not contract then
-        lib.hideTextUI()
         contractHud.active = false
         contractHud.contract = nil
         contractHud.stage = nil
@@ -117,6 +134,7 @@ local function updateHud(contract, stage)
 
     local text = buildHudText(contract, stage)
     if text then
+        Wait(50)
         lib.showTextUI(text, {
             position = 'right-center',
             icon = 'clipboard-list',
@@ -130,7 +148,7 @@ local function updateHud(contract, stage)
 end
 
 local function setPickupWaypoint(contract)
-    local coords = resolveCoords(contract.pickupType, contract.pickupId)
+    local coords = resolveCoords(contract.pickupType, contract.pickupId, 'pickup')
     if coords then
         SetNewWaypoint(coords.x, coords.y)
         local label = resolveLabel(contract.pickupType, contract.pickupId)
@@ -139,7 +157,7 @@ local function setPickupWaypoint(contract)
 end
 
 local function setDropoffWaypoint(contract)
-    local coords = resolveCoords(contract.dropoffType, contract.dropoffId)
+    local coords = resolveCoords(contract.dropoffType, contract.dropoffId, 'dropoff')
     if coords then
         SetNewWaypoint(coords.x, coords.y)
         local label = resolveLabel(contract.dropoffType, contract.dropoffId)
@@ -170,9 +188,14 @@ function HBSFuelStartContractHud(contract)
 end
 
 function HBSFuelContractLoaded()
-    if not contractHud.active or not contractHud.contract then return end
-    updateHud(contractHud.contract, 'dropoff')
-    setDropoffWaypoint(contractHud.contract)
+    local contract = contractHud.contract
+    if not contract then
+        local data = lib.callback.await('hbs-fuel:server:getContracts', false)
+        contract = data and data.active
+    end
+    if not contract then return end
+    updateHud(contract, 'dropoff')
+    setDropoffWaypoint(contract)
     HBSFuelNotify('Fuel loaded! Heading to delivery location.', 'success')
 end
 
