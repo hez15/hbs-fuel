@@ -23,11 +23,22 @@ end
 
 -- ── CONTRACT HUD ──
 
+local function resolveRefineryFallback()
+    for id, refinery in pairs(Refineries) do
+        return id, refinery
+    end
+    return nil, nil
+end
+
 local function resolveLabel(locationType, locationId)
     if locationType == 'station' and Stations[locationId] then
         return Stations[locationId].label
-    elseif locationType == 'refinery' and Refineries[locationId] then
-        return Refineries[locationId].label
+    elseif locationType == 'refinery' then
+        if Refineries[locationId] then
+            return Refineries[locationId].label
+        end
+        local _, r = resolveRefineryFallback()
+        if r then return r.label end
     elseif locationType == 'oilshop' and Config.OilShops and Config.OilShops[locationId] then
         return Config.OilShops[locationId].label
     elseif locationType == 'crude_source' then
@@ -39,8 +50,12 @@ end
 local function resolveCoords(locationType, locationId)
     if locationType == 'station' and Stations[locationId] then
         return Stations[locationId].coords
-    elseif locationType == 'refinery' and Refineries[locationId] then
-        return Refineries[locationId].coords
+    elseif locationType == 'refinery' then
+        if Refineries[locationId] then
+            return Refineries[locationId].coords
+        end
+        local _, r = resolveRefineryFallback()
+        if r then return r.coords end
     elseif locationType == 'oilshop' and Config.OilShops and Config.OilShops[locationId] then
         return Config.OilShops[locationId].coords
     elseif locationType == 'crude_source' then

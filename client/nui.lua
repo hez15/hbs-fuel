@@ -197,8 +197,13 @@ end
 local function resolveLabel(locationType, locationId)
     if locationType == 'station' and Stations[locationId] then
         return Stations[locationId].label
-    elseif locationType == 'refinery' and Refineries[locationId] then
-        return Refineries[locationId].label
+    elseif locationType == 'refinery' then
+        if Refineries[locationId] then
+            return Refineries[locationId].label
+        end
+        for _, r in pairs(Refineries) do return r.label end
+    elseif locationType == 'oilshop' and Config.OilShops and Config.OilShops[locationId] then
+        return Config.OilShops[locationId].label
     elseif locationType == 'crude_source' then
         return 'Crude Source'
     end
@@ -208,8 +213,13 @@ end
 local function resolveCoords(locationType, locationId)
     if locationType == 'station' and Stations[locationId] then
         return Stations[locationId].coords
-    elseif locationType == 'refinery' and Refineries[locationId] then
-        return Refineries[locationId].coords
+    elseif locationType == 'refinery' then
+        if Refineries[locationId] then
+            return Refineries[locationId].coords
+        end
+        for _, r in pairs(Refineries) do return r.coords end
+    elseif locationType == 'oilshop' and Config.OilShops and Config.OilShops[locationId] then
+        return Config.OilShops[locationId].coords
     elseif locationType == 'crude_source' then
         for _, refinery in pairs(Refineries) do
             if refinery.points and refinery.points.crudeSource then

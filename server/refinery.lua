@@ -115,6 +115,33 @@ lib.callback.register('hbs-fuel:server:openRefineryValve', function(source, refi
     return { ok = true, message = Config.Notifications.ValveOpened }
 end)
 
+lib.callback.register('hbs-fuel:server:canStartRefineryBatch', function(source, refineryId)
+    local valveExpiry = refineryValveState[refineryId] or 0
+    if valveExpiry < os.time() then
+        return { ok = false, message = 'Open the valve first.' }
+    end
+
+    local refinery = getRefinery(refineryId)
+    if not refinery then
+        return { ok = false, message = 'Refinery not found.' }
+    end
+
+    local recipe = Config.RefineryRecipes[refinery.recipe]
+    if not recipe then
+        return { ok = false, message = 'Recipe missing.' }
+    end
+
+    if activeBatches[refineryId] then
+        return { ok = false, message = 'A batch is already processing.' }
+    end
+
+    if refinery.crude.current < recipe.input.crude then
+        return { ok = false, message = ('Not enough crude. Need %.0fL, have %.0fL.'):format(recipe.input.crude, refinery.crude.current) }
+    end
+
+    return { ok = true }
+end)
+
 lib.callback.register('hbs-fuel:server:startRefineryBatch', function(source, refineryId)
     local valveExpiry = refineryValveState[refineryId] or 0
     if valveExpiry < os.time() then
@@ -143,8 +170,7 @@ lib.callback.register('hbs-fuel:server:startRefineryBatch', function(source, ref
     if not ok then
         return { ok = false, message = reason or 'Unable to start batch.' }
     end
-
-    refineryValveState[refineryId] = nil
+    -- Valve stays open for its full duration (per hour) — no longer cleared here
 
     local outputLines = {}
     for fuelType, amount in pairs(recipe.output) do
