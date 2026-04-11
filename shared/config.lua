@@ -149,7 +149,7 @@ Config.Tanker = {
     DefaultMaxLitres = 12000.0,
     SearchRadius = 18.0,
     HoseMaxDistance = 15.0,
-    ValveOpenSeconds = 120,
+    ValveOpenSeconds = 3600,  -- valve stays open for 1 hour after opening
     CrudeLoadStepSeconds = 10,
     RefineStepSeconds = 12,
     FuelLoadStepSeconds = 12,
@@ -294,10 +294,10 @@ Config.RefineryRecipes = {
     crude_basic = {
         input = { crude = 1000.0 },
         output = {
-            regular = 560.0,   -- bumped from 480
-            diesel = 220.0,    -- bumped from 180
-            jetfuel = 160.0,   -- bumped from 140
-            motoroil = 100.0,  -- bumped from 80 — total output: 1040L from 1000L (4% bonus)
+            regular = 560.0,
+            diesel = 400.0,    -- bumped to 400L
+            jetfuel = 160.0,
+            motoroil = 100.0,  -- total output: 1220L from 1000L (22% bonus)
         },
         processTime = 240,    -- 4 minutes per batch
     }

@@ -438,17 +438,44 @@ local function handleUnloadCrude(refineryId, point)
 end
 
 local function handleOpenValve(refineryId)
+    local ped = PlayerPedId()
+    TaskStartScenarioInPlace(ped, 'WORLD_HUMAN_HAMMERING', 0, true)
+
+    local ok = lib.progressCircle({
+        duration = 5000,
+        label = 'Opening valve...',
+        canCancel = true,
+        disable = { car = true, move = true, combat = true }
+    })
+
+    ClearPedTasks(ped)
+
+    if not ok then return end
+
     local result = lib.callback.await('hbs-fuel:server:openRefineryValve', false, refineryId)
     HBSFuelNotify(result and result.message or 'Unable to open valve.', result and result.ok and 'success' or 'error')
 end
 
 local function handleStartRefinery(refineryId)
+    -- Pre-check valve state and crude level BEFORE showing the progress circle
+    local pre = lib.callback.await('hbs-fuel:server:canStartRefineryBatch', false, refineryId)
+    if not pre or not pre.ok then
+        HBSFuelNotify(pre and pre.message or 'Cannot start batch.', 'error')
+        return
+    end
+
+    local ped = PlayerPedId()
+    TaskStartScenarioInPlace(ped, 'WORLD_HUMAN_CLIPBOARD', 0, true)
+
     local ok = lib.progressCircle({
         duration = Config.Tanker.RefineStepSeconds * 1000,
         label = 'Starting refinery batch...',
         canCancel = true,
         disable = { car = true, move = true, combat = true }
     })
+
+    ClearPedTasks(ped)
+
     if not ok then return end
 
     local result = lib.callback.await('hbs-fuel:server:startRefineryBatch', false, refineryId)
