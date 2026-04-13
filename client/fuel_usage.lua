@@ -20,7 +20,16 @@ CreateThread(function()
 
         local currentFuel = GetCachedVehicleFuel(vehicle)
         if not currentFuel or currentFuel <= 0.0 then
-            SetCachedVehicleFuel(vehicle, 0.0)
+            -- Check if an external script (e.g. /fox, vehicle repair) restored
+            -- the GTA native fuel level while our cache still says 0.
+            local nativePercent = GetVehicleFuelLevel(vehicle)
+            if nativePercent > 5.0 then
+                local capacity = HBSFuel.GetTankCapacity(vehicle)
+                local restored = HBSFuel.Clamp((nativePercent / 100.0) * capacity, 0.0, capacity)
+                SetCachedVehicleFuel(vehicle, restored)
+            else
+                SetCachedVehicleFuel(vehicle, 0.0)
+            end
             Wait(1000)
             goto continue
         end
